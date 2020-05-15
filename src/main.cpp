@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     CO_NMT_reset_cmd_t reset = CO_RESET_NOT;
     bool_t firstRun = true;
     bool_t rebootEnable = false; /*!< Configurable by use case */  // TODO: DO WE EVER RESET? OR NEED TO?
-    char CANdevice[10] = "vcan0";                                  /*!< linux CAN device interface for app to bind to: change to can1 for bbb vcan0 for virtual can*/
+    char CANdevice[10] = "can0";                                  /*!< linux CAN device interface for app to bind to: * change to can1 for bbb, vcan0 for virtual can, can0 for PC */
     int nodeId = NODEID;                                           /*!< CAN Network NODEID */
     /*map linux CAN interface to corresponding int index return zero if no interface exists.*/
     int CANdevice0Index = if_nametoindex(CANdevice);
