@@ -58,7 +58,7 @@ setMovementReturnCode_t ActuatedJoint::setVelocity(double velocity) {
 setMovementReturnCode_t ActuatedJoint::setTorque(double torque) {
     if (driveMode == TORQUE_CONTROL) {
         /*\todo A conversion to the drive value for torque */
-        drive->setTorque(torque)
+        drive->setTorque(torque);
     }
     return UNKNOWN_ERROR;
 }
