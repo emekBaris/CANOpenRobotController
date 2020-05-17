@@ -286,12 +286,12 @@ int Drive::sendSDOMessages(std::vector<std::string> messages) {
         successfulMessages++; // TODO: delete when cancomm_socketFree properly returns
 #endif
         // TODO: in cancomm_socketFree -> return message correctly.
-//         std::string retMsg = returnMessage;
-//         DEBUG_OUT("asdasdasdasd");
-//        if (strcmp(returnMessage, "OK") == 0)
-//        {
-//            successfulMessages++;
-//        }
+        // std::string retMsg = returnMessage;
+        // DEBUG_OUT(retMsg);
+        /*if (strcmp(returnMessage, "OK") == 0)
+        {
+            successfulMessages++;
+        }*/
     }
     return successfulMessages;
 }
