@@ -148,9 +148,33 @@ As the simulated device is in position control, these messages should print when
 ​<!-- ## Run ExoTestMachine on X2
 ​
 Running on the X2 Robot is very similar to the virutal CAN set up, with one adjustment and -->
-
 <!-- ### TODO: Event Driven State machine
 explain me -->
+## Run ExoTestMachine on Real X2
+Under `src/apps/DebugMacro.h`, comment `#define NOROBOT`.
+
+If you use X2 with 4 joints. Uncomment `#define _NOANKLES` in `src/apps/RobotParams.h`
+<!-- ### TODO: What to do for M1
+explain me -->
+
+In `src/main.cpp`, set `CANdevice[10]`. If you use BeagleBone:
+```
+char CANdevice[10] = "can1";
+```
+If you use a Linux PC:
+```
+char CANdevice[10] = "can0";
+```
+
+If you use Beaglebone Black, initialize CAN communication by running:
+```bash
+$  ./initRobot/X2_startCAN.sh
+```
+If you directly connect to X2 with your Linux PC, initialize CAN communication by running:
+```bash
+$  ./initRobot/initCAN0.sh
+```
+
 
 ## Developer Information
 
