@@ -203,7 +203,7 @@ std::vector<std::string> Drive::generateRPDOConfigSDO(std::vector<OD_Entry_t> it
     sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x1400 + PDO_Num - 1 << " 1 u32 0x" << std::hex << COB_ID;
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
-    
+
     return CANCommands;
 }
 
@@ -275,23 +275,23 @@ int Drive::sendSDOMessages(std::vector<std::string> messages) {
     DEBUG_OUT("sendSDOMessages");
     // change to = 0 when testing with real network or something which responds. and uncomment
     // return message check
-    int successfulMessages = 1;
+    int successfulMessages = 0;
     for (auto strCommand : messages) {
         // explicitly cast c++ string to from const char* to char* for use by cancomm function
         char *SDO_Message = (char *)(strCommand.c_str());
-        // DEBUG_OUT(SDO_Message);
+        DEBUG_OUT(SDO_Message);
 
 #ifndef NOROBOT
         cancomm_socketFree(SDO_Message, returnMessage);
+        successfulMessages++; // TODO: delete when cancomm_socketFree properly returns
 #endif
-
         // TODO: in cancomm_socketFree -> return message correctly.
-        // std::string retMsg = returnMessage;
-        // DEBUG_OUT(retMsg);
-        /*if (strcmp(returnMessage, "OK") == 0)
-        {
-            successfulMessages++;
-        }*/
+//         std::string retMsg = returnMessage;
+//         DEBUG_OUT("asdasdasdasd");
+//        if (strcmp(returnMessage, "OK") == 0)
+//        {
+//            successfulMessages++;
+//        }
     }
     return successfulMessages;
 }
