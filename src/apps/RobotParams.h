@@ -11,7 +11,8 @@
 #ifndef ROBOT_PARAMS_H
 #define ROBOT_PARAMS_H
 
-//#define _NOANKLES  //w / o ankles
+// TODO: Add condition for M1 so that there is only 1 joint
+#define _NOANKLES  //w / o ankles
 #ifndef _NOANKLES
 #define NUM_JOINTS 6
 #else
