@@ -273,7 +273,16 @@ std::vector<std::string> Drive::generateVelControlConfigSDO(motorProfile velocit
 std::vector<std::string> Drive::generateTorqueControlConfigSDO() {
     // Define Vector to be returned as part of this method
     std::vector<std::string> CANCommands;
-    //TODO: Implement
+    // Define stringstream for ease of constructing hex strings
+    std::stringstream sstream;
+    // start drive
+    sstream << "[1] " << NodeID << " start";
+    CANCommands.push_back(sstream.str());
+    sstream.str(std::string());
+    //enable Torque Control mode
+    sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x6060 << " 0 i8 4";
+    CANCommands.push_back(sstream.str());
+    sstream.str(std::string());
 
     return CANCommands;
 }
