@@ -272,26 +272,27 @@ std::vector<std::string> Drive::generateVelControlConfigSDO(motorProfile velocit
 
 int Drive::sendSDOMessages(std::vector<std::string> messages) {
     char *returnMessage;
-    DEBUG_OUT("sendSDOMessages");
+//    DEBUG_OUT("sendSDOMessages");
     // change to = 0 when testing with real network or something which responds. and uncomment
     // return message check
     int successfulMessages = 0;
     for (auto strCommand : messages) {
         // explicitly cast c++ string to from const char* to char* for use by cancomm function
         char *SDO_Message = (char *)(strCommand.c_str());
-        DEBUG_OUT(SDO_Message);
+//        DEBUG_OUT(SDO_Message);
 
 #ifndef NOROBOT
-        cancomm_socketFree(SDO_Message, returnMessage);
-        successfulMessages++; // TODO: delete when cancomm_socketFree properly returns
+        cancomm_socketFree(SDO_Message, &returnMessage);
 #endif
-        // TODO: in cancomm_socketFree -> return message correctly.
-        // std::string retMsg = returnMessage;
-        // DEBUG_OUT(retMsg);
-        /*if (strcmp(returnMessage, "OK") == 0)
+        std::string retMsg = returnMessage;
+
+        // Because returnMessage includes sequence it is possible value is "[1] OK".
+        // Therefore it is checked if return message includes the string "OK".
+        // Another option would be erasing the sequence value before returning in cancomm_socketFree
+        if (retMsg.find("OK") != std::string::npos)
         {
             successfulMessages++;
-        }*/
+        }
     }
     return successfulMessages;
 }
