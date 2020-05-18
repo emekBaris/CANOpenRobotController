@@ -71,6 +71,14 @@ class ExoRobot : public Robot {
        */
     bool initPositionControl();
 
+    /**
+       * \brief Initialises all joints to torque control mode.
+       *
+       * \return true If all joints are successfully configured
+       * \return false  If some or all joints fail the configuration
+   */
+    bool initTorqueControl();
+
     /** 
       * /brief For each joint, move through(send appropriate commands to joints) the currently 
       * generated trajectory of the TrajectoryGenerator object - this assumes the trajectory and robot is in position control. 
@@ -97,7 +105,7 @@ class ExoRobot : public Robot {
 
     /**
        * \brief Implementation of Pure Virtual function from <code>Robot</code> Base class.
-       * Create designed <code>Joint</code> and <code>Driver</code> objects and load into 
+       * Create designed <code>Joint</code> and <code>Driver</code> objects and load into
        * Robot joint vector.
        */
     bool initialiseJoints();

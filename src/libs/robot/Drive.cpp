@@ -270,6 +270,14 @@ std::vector<std::string> Drive::generateVelControlConfigSDO(motorProfile velocit
     return CANCommands;
 }
 
+std::vector<std::string> Drive::generateTorqueControlConfigSDO() {
+    // Define Vector to be returned as part of this method
+    std::vector<std::string> CANCommands;
+    //TODO: Implement
+
+    return CANCommands;
+}
+
 int Drive::sendSDOMessages(std::vector<std::string> messages) {
     char *returnMessage;
 //    DEBUG_OUT("sendSDOMessages");
