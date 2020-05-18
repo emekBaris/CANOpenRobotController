@@ -221,17 +221,17 @@ std::vector<std::string> Drive::generatePosControlConfigSDO(motorProfile positio
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 
-    //Set velocity profile
+    //Set velocity profile //fixme: this is not a succesful message
     sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x6081 << " 0 i32 " << positionProfile.profileVelocity;
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 
-    //Set acceleration profile
+    //Set acceleration profile //fixme: this is not a succesful message
     sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x6083 << " 0 i32 " << positionProfile.profileAccelration;
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 
-    //Set deceleration profile
+    //Set deceleration profile //fixme: this is not a succesful message
     sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x6084 << " 0 i32 " << positionProfile.profileDeceleration;
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
