@@ -23,15 +23,20 @@ bool CopleyDrive::initPosControl(motorProfile posControlMotorProfile) {
     DEBUG_OUT("NodeID " << NodeID << " Initialising Position Control")
 
     sendSDOMessages(generatePosControlConfigSDO(posControlMotorProfile));
-
-    // \todo set additional parameters (bit 5 in 0x6041 makes updates happen immediately)
+    /**
+     * \todo Move jointMinMap and jointMaxMap to set additional parameters (bit 5 in 0x6041 makes updates happen immediately)
+     * 
+     */
     return true;
 }
 
 bool CopleyDrive::initVelControl(motorProfile velControlMotorProfile) {
     DEBUG_OUT("NodeID " << NodeID << " Initialising Velocity Control")
-    /*\todo create velControlMOTORPROFILE and test on exo*/
-    /*\todo Tune velocity loop gain index 0x2381 to optimize V control */
+    /**
+     * \todo create velControlMOTORPROFILE and test on exo
+     * \todo Tune velocity loop gain index 0x2381 to optimize V control
+     * 
+    */
     sendSDOMessages(generateVelControlConfigSDO(velControlMotorProfile));
     return true;
 }
@@ -41,7 +46,7 @@ bool CopleyDrive::initTorqueControl() {
 
     sendSDOMessages(generateTorqueControlConfigSDO());
 
-    return false;
+    return true;
 }
 std::vector<std::string> CopleyDrive::generatePosControlConfigSDO(motorProfile positionProfile) {
     return Drive::generatePosControlConfigSDO(positionProfile); /*<!execute base class function*/

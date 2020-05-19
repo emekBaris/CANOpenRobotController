@@ -40,7 +40,10 @@ class CopleyDrive : public Drive {
          * \return True if successful, False if not
          */
     bool Init();
-
+    /**
+     * \todo Move jointMinMap and jointMaxMap to set additional parameters (bit 5 in 0x6041 makes updates happen immediately)
+     * 
+     */
     /**
          * Sets the drive to Position control with default parameters (through SDO messages)
          * 
@@ -50,7 +53,6 @@ class CopleyDrive : public Drive {
          * \return false if not
          */
     bool initPosControl(motorProfile posControlMotorProfile);
-
     /**
          * Sets the drive to Velocity control with default parameters (through SDO messages)
          * 
