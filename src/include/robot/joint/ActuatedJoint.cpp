@@ -69,8 +69,9 @@ setMovementReturnCode_t ActuatedJoint::setTorque(double torque) {
         * 
         */
         drive->setTorque(torque);
+        return SUCCESS;
     }
-    return UNKNOWN_ERROR;
+    return INCORRECT_MODE;
 }
 
 void ActuatedJoint::readyToSwitchOn() {
