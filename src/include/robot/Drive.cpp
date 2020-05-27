@@ -301,18 +301,18 @@ std::vector<std::string> Drive::generateTorqueControlConfigSDO() {
 
 int Drive::sendSDOMessages(std::vector<std::string> messages) {
     char *returnMessage;
-//    DEBUG_OUT("sendSDOMessages");
-    // change to = 0 when testing with real network or something which responds. and uncomment
-    // return message check
+
+#ifndef NOROBOT
     int successfulMessages = 0;
+#else
+    int successfulMessages = 1;
+#endif
     for (auto strCommand : messages) {
         // explicitly cast c++ string to from const char* to char* for use by cancomm function
         char *SDO_Message = (char *)(strCommand.c_str());
-//        DEBUG_OUT(SDO_Message);
 
 #ifndef NOROBOT
         cancomm_socketFree(SDO_Message, &returnMessage);
-#endif
         std::string retMsg = returnMessage;
 
         // Because returnMessage includes sequence it is possible value is "[1] OK".
@@ -322,6 +322,8 @@ int Drive::sendSDOMessages(std::vector<std::string> messages) {
         {
             successfulMessages++;
         }
+#endif
+
     }
     return successfulMessages;
 }
