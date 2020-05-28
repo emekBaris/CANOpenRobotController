@@ -37,7 +37,6 @@ ControlMode ActuatedJoint::setMode(ControlMode driveMode_, motorProfile profile)
             return TORQUE_CONTROL;
         }
     }
-
     return ERROR;
 }
 

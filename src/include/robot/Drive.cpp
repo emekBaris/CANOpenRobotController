@@ -33,7 +33,7 @@ bool Drive::setVel(int velocity) {
 bool Drive::setTorque(int torque) {
     /**
     * \todo add setTorque to object dictionary
-    * 
+    *
     */
     DEBUG_OUT("Drive " << NodeID << " Writing " << torque << " to 0x6071");
     *(&CO_OD_RAM.targetMotorTorques.motor1 + ((this->NodeID - 1))) = torque;
@@ -43,7 +43,7 @@ bool Drive::setTorque(int torque) {
 int Drive::getPos() {
     /**
     * \todo change to actual motor Position when running on real robot
-    * 
+    *
     */
 
     int q = *(&CO_OD_RAM.targetMotorPositions.motor1 + ((this->NodeID - 1)));
@@ -56,8 +56,8 @@ int Drive::getVel() {
 
 int Drive::getTorque() {
     /**
-    *  \todo Remove assumption that only drives 1-4 have access to the motor torques  
-    * 
+    *  \todo Remove assumption that only drives 1-4 have access to the motor torques
+    *
     */
     if (this->NodeID < 5) {
         return (*(&CO_OD_RAM.actualMotorTorques.motor1 + ((this->NodeID - 1))));
@@ -172,7 +172,7 @@ std::vector<std::string> Drive::generateTPDOConfigSDO(std::vector<OD_Entry_t> it
 std::vector<std::string> Drive::generateRPDOConfigSDO(std::vector<OD_Entry_t> items, int PDO_Num, int UpdateTiming) {
     /**
      *  \todo Do a check to make sure that the OD_Entry_t items can be Received
-     * 
+     *
      */
 
     // Calculate COB_ID. If TPDO:
@@ -307,6 +307,7 @@ int Drive::sendSDOMessages(std::vector<std::string> messages) {
 #else
     int successfulMessages = 1;
 #endif
+
     for (auto strCommand : messages) {
         // explicitly cast c++ string to from const char* to char* for use by cancomm function
         char *SDO_Message = (char *)(strCommand.c_str());

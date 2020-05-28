@@ -47,6 +47,7 @@ bool CopleyDrive::initTorqueControl() {
     sendSDOMessages(generateTorqueControlConfigSDO());
 
     return true;
+
 }
 std::vector<std::string> CopleyDrive::generatePosControlConfigSDO(motorProfile positionProfile) {
     return Drive::generatePosControlConfigSDO(positionProfile); /*<!execute base class function*/
@@ -57,5 +58,9 @@ std::vector<std::string> CopleyDrive::generateVelControlConfigSDO(motorProfile v
 };
 
 std::vector<std::string> CopleyDrive::generateTorqueControlConfigSDO() {
+<<<<<<< HEAD
     return Drive::generateTorqueControlConfigSDO(); /*<!execute base class function*/
 };
+=======
+    return Drive::generateTorqueControlConfigSDO(); /*<!execute base class function*/
+>>>>>>> upstream/master
