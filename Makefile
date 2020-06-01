@@ -15,11 +15,10 @@ CXXFLAGS := -std=c++11  -Wno-psabi  -I eigen
 LINKFLAGS := -static 
 
 #Define header directories 
-MODULES   := include/CANopen/CANopenNode include/CANopen/CANopenNode/stack include/CANopen/CANopenNode/stack/socketCAN \
-			 include/CANopen/CANcomms include/CANopen/objDict include/robot  include/robot/InputDevice  			   \
-			 include/robot/joint include/application/stateMachine include/application/TrajectoryGenerator			   \
-			 apps apps/Application/stateMachine apps/Application/stateMachine/states apps/Application/TrajectoryGenerator \
-			 apps/Robot apps/Robot/Joint apps/Robot/InputDevice
+MODULES   := core/CANopen/CANopenNode core/CANopen/CANopenNode/stack core/CANopen/CANopenNode/stack/socketCAN \
+			 core core/CANopen/CANcomms core/CANopen/objDict core/robot core/robot/joint core/stateMachine core/TrajectoryGenerator \
+			 hardware/drives hardware/IO hardware/platforms/example \
+			 apps/example apps/example/stateMachine apps/example/stateMachine/states apps/example/TrajectoryGenerator 
 
 # automatically create list of module file paths NOT including executables
 SRC_DIR	  := $(addprefix src/,$(MODULES))
@@ -37,14 +36,14 @@ BUILD_DIR := $(addprefix build/,$(MODULES)) build/tests
 
 # List of Test Programs (Executables)
 # TESTS	:= testDrives testJoints testOD testRobot testSM testTraj 
-TESTS	:= testDrives 
+TESTS	:= tests/testDrives 
 
 # Test Program Objects and executables
 TESTOBJS := $(addsuffix .o, $(addprefix build/tests/,$(TESTS))) 
 TESTEXE := $(addprefix build/,$(TESTS))
 
 # For main program
-MAIN 	:= build/main.o
+MAIN 	:= build/apps/example/main.o
 MAINEXE := build/EXO_APP_2020
 
 # Tell compiler where to find all source files
