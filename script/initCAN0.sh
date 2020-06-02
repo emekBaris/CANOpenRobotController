@@ -7,5 +7,5 @@
 sudo ip link set can0 up type can bitrate 1000000
 sudo ifconfig can0 up
 
-echo - > storage/od4_storage
-echo - > storage/od4_storage_auto
+#echo - > storage/od4_storage
+#echo - > storage/od4_storage_auto
