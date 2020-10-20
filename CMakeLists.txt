@@ -21,7 +21,7 @@ set (STATE_MACHINE_NAME "X2DemoMachine")
 set(NO_ROBOT ON)
 
 # ROS Flag. set ON if you want to use ROS. Else, set OFF.
-set(USE_ROS OFF)
+set(USE_ROS ON)
 
 if(USE_ROS)
     add_definitions(-DUSEROS)
@@ -93,6 +93,11 @@ if(USE_ROS)
 			controller_manager_msgs
 			cob_gazebo_ros_control
 			x2_description
+			legs_description
+			legs_controller
+			position_controllers
+			velocity_controllers
+			effort_controllers
 			)
 		endif()
 

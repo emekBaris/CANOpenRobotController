@@ -57,6 +57,11 @@
   <build_depend>controller_manager_msgs</build_depend>
   <build_depend>cob_gazebo_ros_control</build_depend>
   <build_depend>x2_description</build_depend>
+  <build_depend>legs_description</build_depend>
+  <build_depend>legs_controller</build_depend>
+  <build_depend>position_controllers</build_depend>
+  <build_depend>velocity_controllers</build_depend>
+  <build_depend>effort_controllers</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
@@ -65,6 +70,11 @@
   <build_export_depend>controller_manager_msgs</build_export_depend>
   <build_export_depend>cob_gazebo_ros_control</build_export_depend>
   <build_export_depend>x2_description</build_export_depend>
+  <build_export_depend>legs_description</build_export_depend>
+  <build_export_depend>legs_controller</build_export_depend>
+  <build_export_depend>position_controllers</build_export_depend>
+  <build_export_depend>velocity_controllers</build_export_depend>
+  <build_export_depend>effort_controllers</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
@@ -73,6 +83,11 @@
   <exec_depend>controller_manager_msgs</exec_depend>
   <exec_depend>cob_gazebo_ros_control</exec_depend>
   <exec_depend>x2_description</exec_depend>
+  <exec_depend>legs_description</exec_depend>
+  <exec_depend>legs_controller</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>velocity_controllers</exec_depend>
+  <exec_depend>effort_controllers</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

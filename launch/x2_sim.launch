@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- load the urdf into the parameter server -->
-  <param name="robot_description" command="$(find xacro)/xacro '$(find x2_description)/urdf/x2_fixed_base.urdf.xacro'"/>
 
   <!-- these are the arguments you can pass this launch file, for example paused:=true -->
   <arg name="paused" default="false"/>
@@ -9,9 +7,11 @@
   <arg name="gui" default="false"/>
   <arg name="headless" default="false"/>
   <arg name="debug" default="false"/>
-  <arg name="controllers" default="position_controller velocity_controller torque_controller">
-
-  </arg>
+  <arg name="x2_controllers" default="position_controller velocity_controller torque_controller"/>
+  <arg name="legs_controllers" default="position_torque_controller torque_controller"/>
+  <arg name="load_human" default="true"/>
+  <arg name="robot_description_name" default="x2/robot_description"/>
+  <arg name="legs_description_name" default="legs/robot_description"/>
 
   <!-- Launch empty world in gazebo -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -23,31 +23,67 @@
     <arg name="output" value="log"/>
   </include>
 
-  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
-  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" args="-urdf -model x2 -param robot_description"/>
+  <!-- load the urdf of X2 into the parameter server -->
+  <param name="$(arg robot_description_name)" command="$(find xacro)/xacro '$(find x2_description)/urdf/x2_fixed_base.urdf.xacro'  robot_description_name:=$(arg robot_description_name)"/>
 
-  <!-- Load joint controller configurations from YAML file to parameter server -->
+  <!-- Spawn X2 -->
+  <node name="urdf_robot_spawner" pkg="gazebo_ros" type="spawn_model" args="-param $(arg robot_description_name) -urdf -model x2"/>
+
+  <!-- Load X2 joint controller of configurations from YAML file to parameter server -->
   <rosparam file="$(find CORC)/config/x2_ros_control.yaml" command="load"/>
 
-  <!-- load joint state controller -->
-  <node name="joint_state_spawner" pkg="controller_manager" type="spawner" respawn="false"
-     ns="/x2" args="joint_state_controller"/>
+  <!-- load X2 joint state controller -->
+  <node name="robot_joint_state_spawner" pkg="controller_manager" type="spawner" respawn="false"
+     ns="/x2" args="joint_state_controller" output="screen"/>
 
-  <!-- load other controllers in stopped state -->
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-     ns="/x2" args="--stopped $(arg controllers)"/> 
+  <!-- load other controllers of x2 in stopped state -->
+  <node name="robot_controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+     ns="/x2" args="--stopped $(arg x2_controllers)" output="screen"/> 
 
   <!-- The robot_state_publisher reads the urdf from /robot_description parameter
        and listens to joint information on the /joint_states topic -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
   <remap from="/joint_states" to="/x2/joint_states" />
+  <remap from="robot_description" to="$(arg robot_description_name)"/>
   </node>
 
+<group unless="$(arg load_human)"> 
   <!-- rviz will enable us to see the robot -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find x2_description)/rviz/view_robot.rviz"/>
+</group> 
 
-  <!-- CORC -->
-  <node name="x2_node" pkg="CORC" type="X2DemoMachine_APP_NOROBOT" output="screen"/> 
+  <!-- CORC 
+  <node name="x2_node" pkg="CORC" type="X2DemoMachine_APP_NOROBOT" output="screen"/> -->
+
+<group if="$(arg load_human)"> 
+
+  <!-- load the urdf of human_legs into the parameter server -->
+  <param name="$(arg legs_description_name)" command="$(find xacro)/xacro '$(find legs_description)/urdf/legs_fixed_base.urdf.xacro' legs_description_name:=$(arg legs_description_name)"/> 
+
+  <!-- Spawn human legs -->
+  <node name="urdf_legs_spawner" pkg="gazebo_ros" type="spawn_model" args="-param $(arg legs_description_name) -urdf -model legs"/>
+
+  <!-- Load legs joint controller of configurations from YAML file to parameter server -->
+  <rosparam file="$(find legs_controller)/config/legs_ros_control.yaml" command="load"/> 
+
+  <!-- load legs joint state controller -->
+  <node name="legs_joint_state_spawner" pkg="controller_manager" type="spawner" respawn="false"
+     ns="/legs" args="joint_state_controller" output="screen"/>
+
+  <!-- load other controllers of legs in stopped state -->
+  <node name="legs_controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+     ns="/legs" args="--stopped $(arg legs_controllers)" output="screen"/>
+
+  <!-- The robot_state_publisher reads the urdf from /robot_description parameter
+       and listens to joint information on the /joint_states topic -->
+  <node name="legs_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+  <remap from="/joint_states" to="/legs/joint_states" />
+  <remap from="robot_description" to="$(arg legs_description_name)"/>
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find x2_description)/rviz/view_robot_with_human.rviz"/>
+
+</group> 
 
 </launch>
 
