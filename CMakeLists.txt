@@ -32,7 +32,6 @@ if(NO_ROBOT AND USE_ROS)
     add_definitions(-DSIM)
 endif()
 
-
 ## Compile as C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -95,6 +94,7 @@ if(USE_ROS)
 			x2_description
 			legs_description
 			legs_controller
+			legs_interaction
 			position_controllers
 			velocity_controllers
 			effort_controllers

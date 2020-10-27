@@ -20,11 +20,11 @@
     <arg name="paused" value="$(arg paused)"/>
     <arg name="use_sim_time" value="$(arg use_sim_time)"/>
     <arg name="headless" value="$(arg headless)"/>
-    <arg name="output" value="log"/>
+    <arg name="output" value="screen"/>
   </include>
 
   <!-- load the urdf of X2 into the parameter server -->
-  <param name="$(arg robot_description_name)" command="$(find xacro)/xacro '$(find x2_description)/urdf/x2_fixed_base.urdf.xacro'  robot_description_name:=$(arg robot_description_name)"/>
+  <param name="$(arg robot_description_name)" command="$(find xacro)/xacro '$(find x2_description)/urdf/x2_fixed_base.urdf.xacro'  robot_description_name:=$(arg robot_description_name) with_human:=$(arg load_human)"/>
 
   <!-- Spawn X2 -->
   <node name="urdf_robot_spawner" pkg="gazebo_ros" type="spawn_model" args="-param $(arg robot_description_name) -urdf -model x2"/>
