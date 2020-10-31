@@ -1,14 +1,14 @@
 
 /**
- * 
+ *
  * \file X2Robot.h
- * \author Justin Fong 
+ * \author Justin Fong
  * \version 0.1
  * \date 2020-05-17
  * \copyright Copyright (c) 2020
- * 
+ *
  * \breif  The<code> X2Robot</ code> class is defined to interface with Fourier Intelligence's X2 (or H4)
- * ExoMotus products. 
+ * ExoMotus products.
  *
  */
 
@@ -45,7 +45,6 @@
 #define X2_NUM_FORCE_SENSORS 4
 
 // Macros
-//#define M_PI 3.14159265358979323846264338327950288 //Already defined in cmath
 #define deg2rad(deg) ((deg)*M_PI / 180.0)
 #define rad2deg(rad) ((rad)*180.0 / M_PI)
 
@@ -72,9 +71,8 @@ class X2Robot : public Robot {
      */
     motorProfile posControlMotorProfile{4000000, 240000, 240000};
     motorProfile velControlMotorProfile{0, 240000, 240000};
-    Eigen::VectorXd jointPositions_;
-    Eigen::VectorXd jointVelocities_;
-    Eigen::VectorXd jointTorques_;
+
+    //Todo: generalise sensors
     Eigen::VectorXd interactionForces_;
 
     #ifdef SIM
@@ -92,6 +90,10 @@ class X2Robot : public Robot {
     controller_manager_msgs::SwitchController controllerSwitchMsg_;
 
     void jointStateCallback(const sensor_msgs::JointState& msg);
+
+    Eigen::VectorXd simJointPositions_;
+    Eigen::VectorXd simJointVelocities_;
+    Eigen::VectorXd simJointTorques_;
     #endif
 
    public:
@@ -102,7 +104,7 @@ class X2Robot : public Robot {
       */
     X2Robot();
     ~X2Robot();
-    Keyboard keyboard;
+    Keyboard* keyboard;
     std::vector<Drive *> motorDrives;
     std::vector<X2ForceSensor *> forceSensors;
 
@@ -170,23 +172,23 @@ class X2Robot : public Robot {
     setMovementReturnCode_t setTorque(Eigen::VectorXd torques);
 
     /**
-    * \brief Get the actual position of each joint
+    * \brief Get the latest joints position
     *
-    * \return Eigen::VectorXd a vector of actual joint positions
+    * \return Eigen::VectorXd a reference to the vector of actual joint positions
     */
     Eigen::VectorXd& getPosition();
 
     /**
-    * \brief Get the actual velocity of each joint
+    * \brief Get the latest joints velocity
     *
-    * \return Eigen::VectorXd a vector of actual joint positions
+    * \return Eigen::VectorXd a reference to the vector of actual joint positions
     */
     Eigen::VectorXd& getVelocity();
 
     /**
-    * \brief Get the actual torque of each joint
+    * \brief Get the latest joints torque
     *
-    * \return Eigen::VectorXd a vector of actual joint positions
+    * \return Eigen::VectorXd a reference to the vector of actual joint positions
     */
     Eigen::VectorXd& getTorque();
 
@@ -246,8 +248,8 @@ class X2Robot : public Robot {
        */
     void freeMemory();
     /**
-       * \brief update current state of the robot, including input and output devices. 
-       * Overloaded Method from the Robot Class. 
+       * \brief update current state of the robot, including input and output devices.
+       * Overloaded Method from the Robot Class.
        * Example. for a keyboard input this would poll the keyboard for any button presses at this moment in time.
        */
     void updateRobot();

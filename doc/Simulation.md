@@ -2,7 +2,10 @@
 
 This document describes how to set up the environment to run a CORC app with ROS support and a Gazebo simulation. It is assumed that the target and host are the same (no cross-compilation).
 
-Currently, the simulation capabilities are implemented only for X2.
+This simulation is written for X2 only, and is supported on Ubuntu 18.04 and with ROS Melodic. 
+
+> Note: It is possible to run this on Ubuntu 20.04 with ROS Noetic, however, installation instructions will be different (installing the Noetic rather than Melodic packages below)
+
 ## Dependencies
 
 ### Install ROS and Catkin tools
@@ -25,6 +28,8 @@ $ wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 $ sudo apt-get update
 $ sudo apt-get install python-catkin-tools
 ```
+
+> Note: On Ubuntu 20.04/ROS Noetic, `python3-catkin-tools` is required instead
 
 Install ros_control:
 ```bash
@@ -71,6 +76,8 @@ $ cd ~/catkin_ws
 $ catkin build CORC
 $ source devel/setup.bash
 ```
+
+> Note: On Ubuntu 20.04/ROS Noetic, we have found that you need to comment out the `#include <cob_gazebo_ros_control/hwi_switch_robot_hw_sim.h>` and `#include <gazebo_ros_control/gazebo_ros_control_plugin.h>` lines in `cob_gazebo_plugins/cob_gazebo_ros_control/include/cob_gazebo_ros_control/hwi_switch_robot_hw_sim.h` before running `catkin build CORC` once, before uncommenting them and running them again. We are not sure why at this stage.
 
 ## Run
 On real robot:

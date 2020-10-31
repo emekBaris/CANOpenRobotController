@@ -72,7 +72,7 @@ static void periodic_task_init(struct period_info *pinfo);
 static void wait_rest_of_period(struct period_info *pinfo);
 /* Forward declartion of CAN helper functions*/
 void configureCANopen(int nodeId, int rtPriority, int CANdevice0Index, char *CANdevice);
-void CO_errExit(char const *msg);                         /*!< CAN object error code and exit program*/
+void CO_errExit(char const *msg);                   /*!< CAN object error code and exit program*/
 void CO_error(const uint32_t info);                 /*!< send CANopen generic emergency message */
 volatile uint32_t CO_timer1ms = 0U;                 /*!< Global variable increments each millisecond */
 volatile sig_atomic_t CO_endProgram = 0;            /*!< Signal handler: controls the end of CAN processing thread*/
@@ -85,11 +85,25 @@ static void sigHandler(int sig) {
 /** Mainline and threads                                                     **/
 /******************************************************************************/
 int main(int argc, char *argv[]) {
+    //Initialise console and file logging. Name file can be specified if required (see logging.h)
+    init_logging();
+
+    //Check if running with root privilege
+    if(getuid() != 0) {
+        //Fallback to standard non RT thread
+        rtPriority = -1;
+        rtControlPriority = -1;
+        spdlog::warn("Running without root privilege: using non-RT priority threads");
+    }
+    else {
+        spdlog::info("Running with root privilege: using RT priority threads");
+    }
+
     /* TODO : MOVE bellow definitionsTO SOME KIND OF CANobject, struct or the like*/
     CO_NMT_reset_cmd_t reset = CO_RESET_NOT;
     bool_t firstRun = true;
     bool_t rebootEnable = false; /*!< Configurable by use case */  // TODO: DO WE EVER RESET? OR NEED TO?
-    int nodeId = NODEID;                                           /*!< CAN Network NODEID */
+    int nodeId = NODEID; /*!< CAN Network NODEID */
 
     int can_dev_number=6;
     char CANdeviceList[can_dev_number][10] = {"vcan0\0", "can0\0", "can1\0", "can2\0", "can3\0", "can4\0"};    /*!< linux CAN device interface for app to bind to: change to can1 for bbb, can0 for BBAI vcan0 for virtual can*/
@@ -97,7 +111,6 @@ int main(int argc, char *argv[]) {
     int CANdevice0Index;
     //Rotate through list of interfaces and select first one existing and up
     for(int i=0; i<can_dev_number; i++) {
-        printf("%s: ", CANdeviceList[i]);
         //Check if interface exists
         CANdevice0Index = if_nametoindex(CANdeviceList[i]);/*map linux CAN interface to corresponding int index return zero if no interface exists.*/
         if(CANdevice0Index!=0) {
@@ -107,11 +120,11 @@ int main(int argc, char *argv[]) {
             FILE* operstate_f = fopen(operstate_filename, "r");
             if(fscanf(operstate_f, "%s", &operstate_s)>0)
             {
-                printf("%s\n", operstate_s);
+                spdlog::info("{}: {}", CANdeviceList[i], operstate_s);
                 //Check if not "down" as will be "unknown" if up
                 if(strcmp(operstate_s, "down")!=0) {
                     snprintf(CANdevice, 9, "%s", CANdeviceList[i]);
-                    printf("Using: %s (%d)\n", CANdeviceList[i], CANdevice0Index);
+                    spdlog::info("Using: {} ({})", CANdeviceList[i], CANdevice0Index);
                     break;
                 } else {
                     CANdevice0Index=0;
@@ -120,7 +133,7 @@ int main(int argc, char *argv[]) {
                 CANdevice0Index=0;
             }
         } else {
-            printf("-\n");
+            spdlog::info("{}: -", CANdeviceList[i]);
         }
 
     }
@@ -136,7 +149,7 @@ int main(int argc, char *argv[]) {
         CO_errExit("Program init - SIGINIT handler creation failed");
     if (signal(SIGTERM, sigHandler) == SIG_ERR)
         CO_errExit("Program init - SIGTERM handler creation failed");
-    printf("starting CANopen device with Node ID %d(0x%02X)\n", nodeId, nodeId);
+    spdlog::info("Starting CANopen device with Node ID {}", nodeId);
 
     //Set synch signal period (in us)
     CO_OD_RAM.communicationCyclePeriod=CANUpdateLoopPeriodInms*1000;
@@ -192,11 +205,7 @@ int main(int argc, char *argv[]) {
                 struct sched_param param;
                 param.sched_priority = rtPriority;
                 if (pthread_setschedparam(rt_thread_id, SCHED_FIFO, &param) != 0){
-#ifndef USEROS
                     CO_errExit("Program init - rt_thread set scheduler failed (are you root?)");
-#else
-                    ROS_ERROR("Program init - rt_thread set scheduler failed");
-#endif
                 }
             }
             /* Create control_thread */
@@ -207,11 +216,7 @@ int main(int argc, char *argv[]) {
                 struct sched_param paramc;
                 paramc.sched_priority = rtControlPriority;
                 if (pthread_setschedparam(rt_control_thread_id, SCHED_FIFO, &paramc) != 0){
-#ifndef USEROS
                     CO_errExit("Program init - rt_thread set scheduler failed (are you root?)");
-#else
-                    ROS_ERROR("Program init - rt_thread set scheduler failed");
-#endif
                 }
             }
             /* start CAN */
@@ -260,7 +265,7 @@ int main(int argc, char *argv[]) {
         CANrx_taskTmr_close();
         taskMain_close();
         CO_delete(CANdevice0Index);
-        printf("Canopend on %s (nodeId=0x%02X) - finished.\n\n", CANdevice, nodeId);
+        spdlog::info("Canopend on {} (nodeId={}) - finished.", CANdevice, nodeId);
         /* Flush all buffers (and reboot) */
         if (rebootEnable && reset == CO_RESET_APP) {
             sync();
@@ -352,27 +357,27 @@ void configureCANopen(int nodeId, int rtPriority, int CANdevice0Index, char *CAN
     }
     // rt Thread priority sanity check
     if (rtPriority != -1 && (rtPriority < sched_get_priority_min(SCHED_FIFO) || rtPriority > sched_get_priority_max(SCHED_FIFO))) {
-        fprintf(stderr, "Wrong RT priority (%d)\n", rtPriority);
+        spdlog::critical("Wrong RT priority ({})", rtPriority);
         exit(EXIT_FAILURE);
     }
 
     if (CANdevice0Index == 0) {
-        char s[120];
-        snprintf(s, 120, "Can't find CAN device \"%s\"", CANdevice);
-        CO_errExit(s);
+        spdlog::critical("Can't find any CAN device");
+        exit(EXIT_FAILURE);
     }
 
     /* Verify, if OD structures have proper alignment of initial values */
     if (CO_OD_RAM.FirstWord != CO_OD_RAM.LastWord) {
-        fprintf(stderr, "Program init - Canopend- Error in CO_OD_RAM.\n");
+        spdlog::critical("Program init - Canopend- Error in CO_OD_RAM.");
         exit(EXIT_FAILURE);
     }
 };
 void CO_errExit(char const *msg) {
-    perror(msg);
+    spdlog::critical(msg);
     exit(EXIT_FAILURE);
 }
 void CO_error(const uint32_t info) {
     CO_errorReport(CO->em, CO_EM_GENERIC_SOFTWARE_ERROR, CO_EMC_SOFTWARE_INTERNAL, info);
-    fprintf(stderr, "canopend generic error: 0x%X\n", info);
+    //fprintf(stderr, "canopend generic error: 0x%X\n", info);
+    spdlog::error("canopend generic error: {}", info);
 }
