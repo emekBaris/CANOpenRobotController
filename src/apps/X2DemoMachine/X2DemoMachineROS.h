@@ -13,6 +13,7 @@
 #define SRC_X2DEMOMACHINEROS_H
 
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Imu.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -29,6 +30,7 @@ class X2DemoMachineROS {
     void update(void);
     void publishJointStates(void);
     void publishInteractionForces(void);
+    void publishContactAccelerations(void);
     void initialize();
     void setNodeHandle(ros::NodeHandle& nodeHandle);
 
@@ -41,6 +43,7 @@ class X2DemoMachineROS {
     ros::Publisher leftShankForcePublisher_;
     ros::Publisher rightThighForcePublisher_;
     ros::Publisher rightShankForcePublisher_;
+    std::vector<ros::Publisher> imuPublisher_;
     ros::ServiceServer startExoService_;
     ros::ServiceServer calibrateForceSensorsService_;
     ros::Subscriber interactionForceCommandSubscriber_;

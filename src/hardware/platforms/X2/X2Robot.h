@@ -25,6 +25,7 @@
 #include "Keyboard.h"
 #include "Robot.h"
 #include "X2ForceSensor.h"
+#include "TechnaidIMU.h"
 #include "X2Joint.h"
 
 // Logger
@@ -48,8 +49,10 @@
      *
      */
 
+// todo move to param
 #define X2_NUM_JOINTS 4
 #define X2_NUM_FORCE_SENSORS 4
+#define X2_NUM_IMUS 2
 
 // robot name is used to access the properties of the correct robot version
 #define X2_NAME X2_MELB_A
@@ -79,6 +82,7 @@ struct RobotParameters {
     Eigen::VectorXd c2; // friction const related to sqrt of vel
     Eigen::VectorXd cuffWeights; // cuff Weights [N]
     Eigen::VectorXd forceSensorScaleFactor; // scale factor of force sensors [N/sensor output]
+    IMUParameters imuParameters;
 };
 
 /**
@@ -98,6 +102,7 @@ class X2Robot : public Robot {
 
     //Todo: generalise sensors
     Eigen::VectorXd interactionForces_;
+    Eigen::MatrixXd contactAccelerations_; // rows are x y z, columns are different contact points
 
     std::string robotName_;
 
@@ -138,6 +143,7 @@ class X2Robot : public Robot {
     Keyboard* keyboard;
     std::vector<Drive*> motorDrives;
     std::vector<X2ForceSensor*> forceSensors;
+    TechnaidIMU* technaidIMUs;
 
     // /**
     //  * \brief Timer Variables for moving through trajectories
@@ -231,6 +237,20 @@ class X2Robot : public Robot {
     Eigen::VectorXd& getInteractionForce();
 
     /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents differet contacts
+    */
+    Eigen::MatrixXd& getContactAccelerations();
+
+    /**
+    * \brief Get robot parameters
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents differet contacts
+    */
+    RobotParameters& getRobotParameters();
+
+    /**
     * \brief Calibrate force sensors
     *
     * \return bool success of calibration
@@ -304,10 +324,6 @@ class X2Robot : public Robot {
        */
     std::string& getRobotName();
 
-    /**
-       * \brief returns the parameters of the robot
-       */
-    RobotParameters& getRobotParameters();
 
 #ifdef SIM
     /**

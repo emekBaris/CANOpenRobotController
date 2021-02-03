@@ -22,6 +22,14 @@ void X2DemoMachineROS::initialize() {
     calibrateForceSensorsService_ = nodeHandle_->advertiseService("calibrate_force_sensors", &X2DemoMachineROS::calibrateForceSensorsCallback, this);
     startExoTriggered_ = false;
     interactionForceCommand_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+
+    // todo: create a new message type and publish trough single topic
+    // creating the publishers
+    for(int i = 0; i<X2_NUM_IMUS; i++){
+        imuPublisher_.push_back(nodeHandle_->advertise<sensor_msgs::Imu>
+                ("icfa_" + std::to_string(robot_->getRobotParameters().imuParameters.serialNo[i]), 1));
+        std::cout<<"PUBLISHER INITIALIZATION !!!!!!!!!!!!!!!!!"<<std::endl;
+    }
 }
 
 void X2DemoMachineROS::update() {
@@ -29,6 +37,7 @@ void X2DemoMachineROS::update() {
     publishJointStates();
     publishInteractionForces();
 #endif
+    publishContactAccelerations(); //todo: move inside ifndef SIM
 }
 
 void X2DemoMachineROS::publishJointStates() {
@@ -84,6 +93,20 @@ void X2DemoMachineROS::publishInteractionForces() {
     leftShankForcePublisher_.publish(leftShankForceMsg_);
     rightThighForcePublisher_.publish(rightThighForceMsg_);
     rightShankForcePublisher_.publish(rightShankForceMsg_);
+}
+
+void X2DemoMachineROS::publishContactAccelerations() {
+
+    for(int i = 0; i<X2_NUM_IMUS; i++){
+        sensor_msgs::Imu imuMsg;
+        imuMsg.header.stamp = ros::Time::now();
+        imuMsg.header.frame_id = "ICFA" + robot_->getRobotParameters().imuParameters.serialNo[i];
+        imuMsg.linear_acceleration.x = robot_->getContactAccelerations()(0, i);
+        imuMsg.linear_acceleration.y = robot_->getContactAccelerations()(1, i);
+        imuMsg.linear_acceleration.z = robot_->getContactAccelerations()(2, i);
+
+        imuPublisher_[i].publish(imuMsg);
+    }
 }
 
 void X2DemoMachineROS::setNodeHandle(ros::NodeHandle &nodeHandle) {

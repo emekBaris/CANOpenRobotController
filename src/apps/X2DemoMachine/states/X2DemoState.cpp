@@ -24,6 +24,7 @@ void X2DemoState::entry(void) {
 }
 
 void X2DemoState::during(void) {
+    robot_->getContactAccelerations();
     if(controller_mode_ == 1){ // zero torque mode
         desiredJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         robot_->setTorque(desiredJointTorques_);

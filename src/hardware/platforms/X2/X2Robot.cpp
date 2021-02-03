@@ -43,11 +43,7 @@ X2Robot::X2Robot() : Robot() {
     // by setRobotName() to the ros node name. See X2DemoMachine::init()
     robotName_ = XSTR(X2_NAME);
 
-#ifdef NOROBOT
-    simJointPositions_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-    simJointVelocities_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-    simJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-#endif
+    interactionForces_ = Eigen::VectorXd::Zero(forceSensors.size());
 
     // Initializing the parameters to zero
     x2Parameters.m = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
@@ -59,9 +55,17 @@ X2Robot::X2Robot() : Robot() {
     x2Parameters.c2 = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
     x2Parameters.cuffWeights = Eigen::VectorXd::Zero(X2_NUM_FORCE_SENSORS);
     x2Parameters.forceSensorScaleFactor = Eigen::VectorXd::Zero(X2_NUM_FORCE_SENSORS);
+
+    #ifdef NOROBOT
+        simJointPositions_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+        simJointVelocities_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+        simJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+    #endif
 }
 
 X2Robot::~X2Robot() {
+
+    technaidIMUs->exit();
     freeMemory();
     spdlog::debug("X2Robot deleted");
 }
@@ -346,6 +350,17 @@ bool X2Robot::calibrateForceSensors() {
     }
 }
 
+Eigen::MatrixXd & X2Robot::getContactAccelerations() {
+
+    // todo: use backpack angle for compensation
+    contactAccelerations_ = technaidIMUs->getAcceleration();
+}
+
+RobotParameters & X2Robot::getRobotParameters() {
+
+    return x2Parameters;
+}
+
 bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, float delayTime,
                      float homingSpeed, float maxTime) {
     std::vector<bool> success(X2_NUM_JOINTS, false);
@@ -417,6 +432,9 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
 }
 
 bool X2Robot::initialiseJoints() {
+
+    initializeRobotParams(robotName_);
+
     for (int id = 0; id < X2_NUM_JOINTS; id++) {
         motorDrives.push_back(new CopleyDrive(id + 1));
         // The X2 has 2 Hips and 2 Knees, by default configured as 2 hips, then 2 legs int jointID, double jointMin, double jointMax, JointDrivePairs jdp, Drive *drive
@@ -426,8 +444,6 @@ bool X2Robot::initialiseJoints() {
             joints.push_back(new X2Joint(id, X2JointLimits.kneeMin, X2JointLimits.kneeMax, kneeJDP, motorDrives[id]));
         }
     }
-
-    initializeRobotParams(robotName_);
 
     return true;
 }
@@ -454,6 +470,12 @@ bool X2Robot::initialiseInputs() {
     for (int id = 0; id < X2_NUM_FORCE_SENSORS; id++) {
         forceSensors.push_back(new X2ForceSensor(id, x2Parameters.forceSensorScaleFactor[id]));
         inputs.push_back(forceSensors[id]);
+    }
+
+    if(x2Parameters.imuParameters.useIMU){
+        technaidIMUs = new TechnaidIMU(x2Parameters.imuParameters);
+        inputs.push_back(technaidIMUs);
+        technaidIMUs->initialize();
     }
 
     return true;
@@ -485,9 +507,26 @@ bool X2Robot::initializeRobotParams(std::string robotName) {
         x2Parameters.c1[i] = params[robotName]["c1"][i].as<double>();
         x2Parameters.c2[i] = params[robotName]["c2"][i].as<double>();
     }
+
     for(int i = 0; i<X2_NUM_FORCE_SENSORS; i++) {
         x2Parameters.cuffWeights[i] = params[robotName]["cuff_weights"][i].as<double>();
         x2Parameters.forceSensorScaleFactor[i] = params[robotName]["force_sensor_scale_factor"][i].as<double>();
+
+    }
+
+    if(!params[robotName]["technaid_imu"]){
+        spdlog::warn("IMU parameters couldn't be found!");
+        x2Parameters.imuParameters.useIMU = false;
+    } else{
+        x2Parameters.imuParameters.useIMU = true;
+        x2Parameters.imuParameters.canChannel = params[robotName]["technaid_imu"]["can_channel"].as<std::string>();
+        for(int i = 0; i<X2_NUM_IMUS; i++) {
+            std::cout<<"i: "<<i<<std::endl;
+            x2Parameters.imuParameters.serialNo.push_back(params[robotName]["technaid_imu"]["serial_no"][i].as<int>());
+            x2Parameters.imuParameters.networkId.push_back(params[robotName]["technaid_imu"]["network_id"][i].as<int>());
+            x2Parameters.imuParameters.outputMode.push_back(params[robotName]["technaid_imu"]["output_mode"][i].as<std::string>());
+            x2Parameters.imuParameters.dataSize.push_back(params[robotName]["technaid_imu"]["data_size"][i].as<int>());
+        }
     }
 
     return true;
@@ -537,10 +576,6 @@ void X2Robot::setRobotName(std::string robotName) {
 
 std::string & X2Robot::getRobotName() {
     return robotName_;
-}
-
-RobotParameters& X2Robot::getRobotParameters() {
-    return x2Parameters;
 }
 
 #ifdef SIM
