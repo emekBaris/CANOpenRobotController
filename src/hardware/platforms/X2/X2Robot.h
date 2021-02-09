@@ -48,7 +48,7 @@
      *
      */
 
-#define X2_NUM_JOINTS 4
+#define X2_NUM_JOINTS 1
 #define X2_NUM_FORCE_SENSORS 4
 
 // robot name is used to access the properties of the correct robot version

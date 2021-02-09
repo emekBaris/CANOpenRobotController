@@ -136,17 +136,17 @@ bool Drive::posControlConfirmSP() {
 bool Drive::initPDOs() {
     spdlog::debug("Drive::initPDOs");
 
-    spdlog::debug("Set up STATUS_WORD TPDO");
-    if(sendSDOMessages(generateTPDOConfigSDO({STATUS_WORD}, 1, 0xFF))<0) {
-        spdlog::error("Set up STATUS_WORD TPDO FAILED on node {}", NodeID);
-        return false;
-    }
+//    spdlog::debug("Set up STATUS_WORD TPDO");
+//    if(sendSDOMessages(generateTPDOConfigSDO({STATUS_WORD}, 1, 0xFF))<0) {
+//        spdlog::error("Set up STATUS_WORD TPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
 
-    spdlog::debug("Set up ACTUAL_POS and ACTUAL_VEL TPDO");
-    if(sendSDOMessages(generateTPDOConfigSDO({ACTUAL_POS, ACTUAL_VEL}, 2, 0x01))<0) {
-        spdlog::error("Set up ACTUAL_POS and ACTUAL_VEL TPDO FAILED on node {}", NodeID);
-        return false;
-    }
+//    spdlog::debug("Set up ACTUAL_POS and ACTUAL_VEL TPDO");
+//    if(sendSDOMessages(generateTPDOConfigSDO({ACTUAL_POS, ACTUAL_VEL}, 2, 0x01))<0) {
+//        spdlog::error("Set up ACTUAL_POS and ACTUAL_VEL TPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
 
     spdlog::debug("Set up ACTUAL_TOR TPDO");
     if(sendSDOMessages(generateTPDOConfigSDO({ACTUAL_TOR}, 3, 0x01))<0) {
@@ -154,29 +154,29 @@ bool Drive::initPDOs() {
         return false;
     }
 
-    spdlog::debug("Set up CONTROL_WORD RPDO");
-    if(sendSDOMessages(generateRPDOConfigSDO({CONTROL_WORD}, 1, 0xff))<0) {
-        spdlog::error("Set up CONTROL_WORD RPDO FAILED on node {}", NodeID);
-        return false;
-    }
-
-    spdlog::debug("Set up TARGET_POS RPDO");
-    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_POS}, 2, 0xff))<0) {
-        spdlog::error("Set up TARGET_POS RPDO FAILED on node {}", NodeID);
-        return false;
-    }
-
-    spdlog::debug("Set up TARGET_VEL RPDO");
-    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_VEL}, 3, 0xff))<0) {
-        spdlog::error("Set up ARGET_VEL RPDO FAILED on node {}", NodeID);
-        return false;
-    }
-
-    spdlog::debug("Set up TARGET_TOR RPDO");
-    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_TOR}, 4, 0xff, 0x00))<0) {
-        spdlog::error("Set up TARGET_TOR RPDO FAILED on node {}", NodeID);
-        return false;
-    }
+//    spdlog::debug("Set up CONTROL_WORD RPDO");
+//    if(sendSDOMessages(generateRPDOConfigSDO({CONTROL_WORD}, 1, 0xff))<0) {
+//        spdlog::error("Set up CONTROL_WORD RPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
+//
+//    spdlog::debug("Set up TARGET_POS RPDO");
+//    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_POS}, 2, 0xff))<0) {
+//        spdlog::error("Set up TARGET_POS RPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
+//
+//    spdlog::debug("Set up TARGET_VEL RPDO");
+//    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_VEL}, 3, 0xff))<0) {
+//        spdlog::error("Set up ARGET_VEL RPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
+//
+//    spdlog::debug("Set up TARGET_TOR RPDO");
+//    if(sendSDOMessages(generateRPDOConfigSDO({TARGET_TOR}, 4, 0xff, 0x00))<0) {
+//        spdlog::error("Set up TARGET_TOR RPDO FAILED on node {}", NodeID);
+//        return false;
+//    }
 
     return true;
 }
@@ -238,6 +238,8 @@ std::vector<std::string> Drive::generateTPDOConfigSDO(std::vector<OD_Entry_t> it
     sstream << "[1] " << NodeID << " write 0x" << std::hex << 0x1800 + PDO_Num - 1 << " 2 u8 0x" << SyncRate;
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
+
+
 
     for (unsigned int i = 1; i <= items.size(); i++) {
         // Set transmit parameters

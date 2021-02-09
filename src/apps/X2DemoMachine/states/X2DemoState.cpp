@@ -21,6 +21,7 @@ void X2DemoState::entry(void) {
 //    robot_->homing();
 
     time0 = std::chrono::steady_clock::now();
+    std::cout<<"end of entry!!!!!!!!!!!!"<<std::endl;
 }
 
 void X2DemoState::during(void) {

@@ -22,12 +22,14 @@ void X2DemoMachineROS::initialize() {
     calibrateForceSensorsService_ = nodeHandle_->advertiseService("calibrate_force_sensors", &X2DemoMachineROS::calibrateForceSensorsCallback, this);
     startExoTriggered_ = false;
     interactionForceCommand_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+
+    std::cout<<"END OF ROS INIT !!!!!!!!!!!!!!!!!!!"<<std::endl;
 }
 
 void X2DemoMachineROS::update() {
 #ifndef SIM  // if simulation, these will be published by Gazebo
-    publishJointStates();
-    publishInteractionForces();
+//    publishJointStates();
+//    publishInteractionForces();
 #endif
 }
 
