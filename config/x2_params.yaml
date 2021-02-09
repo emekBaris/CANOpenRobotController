@@ -9,7 +9,7 @@ X2_SRA_A: # That ends with 0.9999 are not investigated yet
   cuff_weights: [3.69, 3.69, 3.69, 3.69] # cuff Weights [N]
   force_sensor_scale_factor: [0.1999, 0.246, 0.1999, 0.246] # scale factor of force sensors [N/sensor output]
   technaid_imu:
-    can_channel: "can0"
+    can_channel: "can1"
     serial_no: [596, 597]
     network_id: [141, 142]
     output_mode: ['E', 'E'] # see definitions.h for the output modes
@@ -27,7 +27,7 @@ X2_SRA_B: # That ends with 0.9999 are not investigated yet
   cuff_weights: [3.69, 3.69, 3.69, 3.69] # cuff Weights [N]
   force_sensor_scale_factor: [0.1999, 0.194, 0.1999, 0.194] # scale factor of force sensors [N/sensor output]
   technaid_imu:
-    can_channel: "can0"
+    can_channel: "can1"
     serial_no: [596, 597]
     network_id: [141, 142]
     output_mode: ['E', 'E'] # see definitions.h for the output modes

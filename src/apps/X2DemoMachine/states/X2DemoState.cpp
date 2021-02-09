@@ -17,7 +17,7 @@ void X2DemoState::entry(void) {
     f = boost::bind(&X2DemoState::dynReconfCallback, this, _1, _2);
     server_.setCallback(f);
 
-//    robot_->calibrateForceSensors();
+    robot_->calibrateForceSensors();
 //    robot_->homing();
 
     time0 = std::chrono::steady_clock::now();
@@ -33,7 +33,7 @@ void X2DemoState::during(void) {
     } else if(controller_mode_ == 2){ // zero velocity mode
         desiredJointVelocities_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         robot_->setVelocity(desiredJointVelocities_);
-//        std::cout<<robot_->getInteractionForce()<<std::endl<<"**********"<<std::endl;
+        std::cout<<robot_->getInteractionForce()[1]<<std::endl<<"**********"<<std::endl;
 
     } else if(controller_mode_ == 3){ // feedforward model compensation
         int motionIntend;
