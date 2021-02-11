@@ -66,7 +66,7 @@ bool TechnaidIMU::setOutputMode(int networkId, unsigned char mode) {
 
 void TechnaidIMU::updateInput() {
 
-    if(!isInitialized_) return; // if not initialized, immediatly return
+    if(!isInitialized_) return; // if not initialized, immediately return
 
     // Pooling
     canFrame_.can_id = BROADCAST_ID;
@@ -79,23 +79,25 @@ void TechnaidIMU::updateInput() {
     int count[numberOfIMUs_]; // count of the number of bytes that have been read for each imu
     for(int i = 0; i<numberOfIMUs_; i++) count[i] = 0; // setting the elements to zero
 
-    struct timeval timeout = {0, 50};
+    struct timeval timeout = {0, 10000 }; // 10 ms timout
     fd_set readSet;
     FD_ZERO(&readSet);
     FD_SET(canSocket_, &readSet);
 
-    while(select((canSocket_ + 1), &readSet, NULL, NULL, &timeout) && !exitSignalReceived) {
-        // stays in the loop as long as there is something to read
+    bool exit = false;
+    while(!exit && select((canSocket_ + 1), &readSet, NULL, NULL, &timeout) && !exitSignalReceived) {
+        // stays in the loop until all data is received or timeout value is reached
         read(canSocket_, &canFrame_, sizeof(struct can_frame));
 
+        exit = true;
         for(int i = 0; i< numberOfIMUs_; i++){
-
             if (canFrame_.can_id == networkId_[i] + 16) {
                 for(int j = 0; j<canFrame_.can_dlc; j++){
                     data_bytes_multi[count[i]][i] = canFrame_.data[j];
                     count[i]++;
                 }
             }
+            exit = exit && (count[i] == dataSize_[i]); // if data from all sensors are received, this becomes true
         }
     }
 
@@ -116,7 +118,6 @@ void TechnaidIMU::updateInput() {
             acceleration_(2, i) = data_float[2]; // acc z
 
         } else {
-
             spdlog::warn("[TechnaidIMU::update()]: Data was not successfully read for IMU no: {}!", serialNo_[i]);
         }
     }
