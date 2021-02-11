@@ -474,7 +474,7 @@ bool X2Robot::initialiseInputs() {
 
     if(x2Parameters.imuParameters.useIMU){
         technaidIMUs = new TechnaidIMU(x2Parameters.imuParameters);
-        inputs.push_back(technaidIMUs);
+//        inputs.push_back(technaidIMUs); // commented because techIMU class starts its own thread for data update
         technaidIMUs->initialize();
     }
 
@@ -521,7 +521,6 @@ bool X2Robot::initializeRobotParams(std::string robotName) {
         x2Parameters.imuParameters.useIMU = true;
         x2Parameters.imuParameters.canChannel = params[robotName]["technaid_imu"]["can_channel"].as<std::string>();
         for(int i = 0; i<X2_NUM_IMUS; i++) {
-            std::cout<<"i: "<<i<<std::endl;
             x2Parameters.imuParameters.serialNo.push_back(params[robotName]["technaid_imu"]["serial_no"][i].as<int>());
             x2Parameters.imuParameters.networkId.push_back(params[robotName]["technaid_imu"]["network_id"][i].as<int>());
             x2Parameters.imuParameters.outputMode.push_back(params[robotName]["technaid_imu"]["output_mode"][i].as<std::string>());

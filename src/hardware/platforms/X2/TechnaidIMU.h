@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <csignal>
+#include <chrono>
 
 // Eigen
 #include <Eigen/Dense>
@@ -48,6 +49,9 @@
 #include <net/if.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
+
+// pthread
+#include <pthread.h>
 
 // Input Device
 #include "InputDevice.h"
@@ -64,7 +68,7 @@ struct IMUParameters {
 
 };
 
-class TechnaidIMU : public InputDevice {
+class TechnaidIMU{
 public:
     /*!
      * Constructor.
@@ -73,7 +77,8 @@ public:
     TechnaidIMU(IMUParameters imuParameters);
 
     bool initialize();
-    void updateInput();
+    void* update();
+    static void * updateHelper(void * This);
     void exit();
     Eigen::MatrixXd& getAcceleration();
 
@@ -83,6 +88,8 @@ private:
     std::string canChannel_;
     int canSocket_;
     struct can_frame canFrame_;
+
+    pthread_t updateThread;
 
     bool isInitialized_;
 
@@ -96,6 +103,7 @@ private:
     bool validateParameters();
     bool canConfiguration();
     bool checkCommunication();
+    bool startUpdateThread();
 
     static void signalHandler(int signum);
 };
