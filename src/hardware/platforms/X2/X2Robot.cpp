@@ -353,7 +353,68 @@ bool X2Robot::calibrateForceSensors() {
 Eigen::MatrixXd & X2Robot::getContactAccelerations() {
 
     // todo: use backpack angle for compensation
-    contactAccelerations_ = technaidIMUs->getAcceleration();
+    int contactIndex = 0;
+    for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
+        if(x2Parameters.imuParameters.location[imuIndex] == 'c'){
+
+            if(technaidIMUs->getOutputMode_(imuIndex).name != "acc"){
+                spdlog::warn("Contact IMU mode is not acceleration for imu no: . Returns 0", imuIndex);
+                contactAccelerations_.col(contactIndex) = Eigen::MatrixXd::Zero(3,1);
+            }
+            contactAccelerations_.col(contactIndex) = technaidIMUs->getAcceleration().col(imuIndex);
+        }
+    }
+    return contactAccelerations_;
+}
+
+Eigen::MatrixXd & X2Robot::getContactQuaternions() {
+
+    // todo: use backpack angle for compensation
+    int contactIndex = 0;
+    for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
+        if(x2Parameters.imuParameters.location[imuIndex] == 'c'){
+
+            if(technaidIMUs->getOutputMode_(imuIndex).name != "quat"){
+                spdlog::warn("Contact IMU mode is not quaternion for imu no: . Returns 0", imuIndex);
+                contactQuaternions_.col(contactIndex) = Eigen::MatrixXd::Zero(4,1);
+            }
+            contactQuaternions_.col(contactIndex) = technaidIMUs->getQuaternion().col(imuIndex);
+        }
+    }
+    return contactQuaternions_;
+}
+
+Eigen::MatrixXd & X2Robot::getBackpackAccelerations() {
+
+    // todo: use backpack angle for compensation
+    int backpackIndex = 0;
+    for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
+        if(x2Parameters.imuParameters.location[imuIndex] == 'b'){
+
+            if(technaidIMUs->getOutputMode_(imuIndex).name != "acc"){
+                spdlog::warn("Backpack IMU mode is not acceleration for imu no: . Returns 0", imuIndex);
+                backpackAccelerations_.col(backpackIndex) = Eigen::MatrixXd::Zero(3,1);
+            }
+            backpackAccelerations_.col(backpackIndex) = technaidIMUs->getAcceleration().col(imuIndex);
+        }
+    }
+    return backpackAccelerations_;
+
+}
+
+Eigen::MatrixXd & X2Robot::getBackpackQuaternions() {
+    // todo: use backpack angle for compensation
+    int backpackIndex = 0;
+    for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
+        if(x2Parameters.imuParameters.location[imuIndex] == 'b'){
+            if(technaidIMUs->getOutputMode_(imuIndex).name != "quat"){
+                spdlog::warn("Backpack IMU mode is not quaternion for imu no: . Returns 0", imuIndex);
+                backpackQuaternions_.col(backpackIndex) = Eigen::MatrixXd::Zero(3,1);
+            }
+            backpackQuaternions_.col(backpackIndex) = technaidIMUs->getQuaternion().col(imuIndex);
+        }
+    }
+    return backpackQuaternions_;
 }
 
 RobotParameters & X2Robot::getRobotParameters() {
@@ -523,10 +584,20 @@ bool X2Robot::initializeRobotParams(std::string robotName) {
         for(int i = 0; i<X2_NUM_IMUS; i++) {
             x2Parameters.imuParameters.serialNo.push_back(params[robotName]["technaid_imu"]["serial_no"][i].as<int>());
             x2Parameters.imuParameters.networkId.push_back(params[robotName]["technaid_imu"]["network_id"][i].as<int>());
-            x2Parameters.imuParameters.outputMode.push_back(params[robotName]["technaid_imu"]["output_mode"][i].as<std::string>());
-            x2Parameters.imuParameters.dataSize.push_back(params[robotName]["technaid_imu"]["data_size"][i].as<int>());
+            x2Parameters.imuParameters.location.push_back(params[robotName]["technaid_imu"]["location"][i].as<char>());
         }
     }
+
+    int numberOfContactIMUs = 0;
+    int numberOfBackpackIMUs = 0;
+    for(int i = 0; i< X2_NUM_IMUS; i++){
+        if(x2Parameters.imuParameters.location[i] == 'c') numberOfContactIMUs++;
+        else if(x2Parameters.imuParameters.location[i] == 'b') numberOfBackpackIMUs++;
+    }
+    contactAccelerations_ = Eigen::MatrixXd::Zero(3, numberOfContactIMUs);
+    contactQuaternions_ = Eigen::MatrixXd::Zero(4, numberOfContactIMUs);
+    backpackAccelerations_ = Eigen::MatrixXd::Zero(3, numberOfBackpackIMUs);
+    backpackQuaternions_ = Eigen::MatrixXd::Zero(4, numberOfBackpackIMUs);
 
     return true;
 }
@@ -571,6 +642,28 @@ Eigen::VectorXd X2Robot::getFeedForwardTorque(int motionIntend) {
 
 void X2Robot::setRobotName(std::string robotName) {
     robotName_ = robotName;
+}
+
+bool X2Robot::setContactIMUMode(IMUOutputMode imuOutputMode) {
+
+    for(int i = 0; i<technaidIMUs->getNumberOfIMUs_(); i++){
+        if(x2Parameters.imuParameters.location[i] == 'c'){
+            if(!technaidIMUs->setOutputMode(i, imuOutputMode)){
+                return false;
+            }
+        }
+    }
+}
+
+bool X2Robot::setBackpackIMUMode(IMUOutputMode imuOutputMode) {
+
+    for(int i = 0; i<technaidIMUs->getNumberOfIMUs_(); i++){
+        if(x2Parameters.imuParameters.location[i] == 'b'){
+            if(!technaidIMUs->setOutputMode(i, imuOutputMode)){
+            return false;
+            }
+        }
+    }
 }
 
 std::string & X2Robot::getRobotName() {

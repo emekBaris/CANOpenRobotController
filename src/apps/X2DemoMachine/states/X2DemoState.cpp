@@ -17,14 +17,17 @@ void X2DemoState::entry(void) {
     f = boost::bind(&X2DemoState::dynReconfCallback, this, _1, _2);
     server_.setCallback(f);
 
-    robot_->calibrateForceSensors();
+//    robot_->calibrateForceSensors();
 //    robot_->homing();
+
+
+    robot_->setBackpackIMUMode(IMUOutputMode::QUATERNION);
+    robot_->setContactIMUMode(IMUOutputMode::ACCELERATION);
 
     time0 = std::chrono::steady_clock::now();
 }
 
 void X2DemoState::during(void) {
-    robot_->getContactAccelerations();
     if(controller_mode_ == 1){ // zero torque mode
         desiredJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         robot_->setTorque(desiredJointTorques_);
@@ -127,6 +130,40 @@ void X2DemoState::during(void) {
             controller_mode_ = 0;
         }
         robot_->setTorque(desiredJointTorques_);
+    } else if(controller_mode_ == 8){ // IMU monitor mode
+        Eigen::Quaterniond q;
+        Eigen::MatrixXd quatEigen = robot_->getBackpackQuaternions();
+        q.x() = quatEigen(0,0);
+        q.y() = quatEigen(1,0);
+        q.z() = quatEigen(2,0);
+        q.w() = quatEigen(3,0);
+
+        Eigen::Matrix3d R = q.toRotationMatrix();
+        double thetaBase = std::atan2(R(2,2), R(2,0));
+        std::cout<<"th_base: "<<180.0/M_PI*thetaBase <<std::endl;
+
+        Eigen::MatrixXd acc = robot_->getContactAccelerations();
+
+        Eigen::Matrix3d R_BC;
+        R_BC << cos(thetaBase),  0, sin(thetaBase),
+                0,               1, 0,
+                -sin(thetaBase), 0, cos(thetaBase);
+
+        Eigen::MatrixXd B_g(3,1);
+        Eigen::MatrixXd C_g(3,1);
+        B_g << 9.81, 0, 0;
+
+        C_g = R_BC.transpose()*B_g;
+
+        Eigen::MatrixXd acc_comp(3,1);
+
+        acc_comp = acc - C_g;
+
+//        std::cout<<"acc: "<<std::endl<<acc<<std::endl<<"*****************"<<std::endl;
+
+        std::cout<<"acc_comp Z: "<<std::endl<<acc_comp(2,0)<<std::endl<<"*****************"<<std::endl;
+
+
     }
 }
 

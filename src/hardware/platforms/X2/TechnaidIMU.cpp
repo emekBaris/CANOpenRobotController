@@ -4,10 +4,10 @@ TechnaidIMU::TechnaidIMU(IMUParameters imuParameters)
     : canChannel_(imuParameters.canChannel),
       serialNo_(imuParameters.serialNo),
       networkId_(imuParameters.networkId),
-      outputMode_(imuParameters.outputMode),
-      dataSize_(imuParameters.dataSize)
+      location_(imuParameters.location)
 {
     isInitialized_ = false;
+    hasMode_ = false;
 }
 
 bool TechnaidIMU::initialize() {
@@ -29,29 +29,54 @@ bool TechnaidIMU::initialize() {
         return false;
     }
 
-    // Set output mode of the IMUs
-    for(int i = 0; i<numberOfIMUs_; i++){
-        if(!setOutputMode(networkId_[i], outputMode_[i][0])){
-            spdlog::error("[TechnaidIMU::initialize]: Error in setting the output mode of imu with net id {}. ", networkId_[i]);
-            return false;
-        }
+//    // Set output mode of the IMUs
+//    for(int i = 0; i<numberOfIMUs_; i++){
+//        if(!setOutputMode(networkId_[i], outputMode_[i][0])){
+//            spdlog::error("[TechnaidIMU::initialize]: Error in setting the output mode of imu with net id {}. ", networkId_[i]);
+//            return false;
+//        }
+//    }
+
+    sleep(1);
+
+    if(!startUpdateThread()){
+        spdlog::error("[TechnaidIMU::initialize]: Error during creating the update thread!");
+        return false;
     }
-
-    sleep(5);
-
-    //todo:: add start thread
-    startUpdateThread();
 
     spdlog::info("[TechnaidIMU::initialize]: Successfully initialized");
     isInitialized_ = true;
     return true;
 }
 
-bool TechnaidIMU::setOutputMode(int networkId, unsigned char mode) {
+bool TechnaidIMU::setOutputMode(int index, IMUOutputMode imuOutputMode) {
 
-    canFrame_.can_id = networkId;
+    if(!isInitialized_){
+        spdlog::error("[TechnaidIMU::setOutputMode]: Not initialized yet!");
+        return false;
+    }
+
+    switch (imuOutputMode) {
+        case ACCELERATION:
+            outputMode_[index].name = "acc";
+            outputMode_[index].dataSize = SIZE_ACCELERATION;
+            outputMode_[index].code = START_ACCELEROMETER_PHYSICAL_DATA_CAPTURE;
+            dataSize_[index] = SIZE_ACCELERATION;
+            break;
+        case QUATERNION:
+            outputMode_[index].name = "quat";
+            outputMode_[index].dataSize = SIZE_QUATERNION;
+            outputMode_[index].code = START_QUATERNION_DATA_CAPTURE;
+            dataSize_[index] = SIZE_QUATERNION;
+            break;
+        default:
+            spdlog::error("Unhandled output mode!");
+    }
+
+    canFrame_.can_id = networkId_[index];
     canFrame_.can_dlc = 1;
-    canFrame_.data[0] = mode;
+    canFrame_.data[0] = outputMode_[index].code;
+
     int writeByte = write(canSocket_, &canFrame_, sizeof(struct can_frame));
 
     sleep(0.5);
@@ -59,10 +84,15 @@ bool TechnaidIMU::setOutputMode(int networkId, unsigned char mode) {
     bool success = (writeByte == sizeof(struct can_frame));
 
     if(success) {
-        spdlog::info("[TechnaidIMU::setOutputMode]: Mode is changed to {} for imu with net id: {}",mode, networkId);
+        if(imuOutputMode == IMUOutputMode::QUATERNION){
+            spdlog::warn("Calibration started. Do not move IMUs for 6 seconds");
+            sleep(6);
+        }
+        spdlog::info("[TechnaidIMU::setOutputMode]: Mode is changed to {} for imu no: {}",outputMode_[index].name, index);
+        hasMode_ = true;
         return true;
     } else {
-        spdlog::error("[TechnaidIMU::setOutputMode]: Error while changing the mode to {} for imu with net id: {} !", mode, networkId);
+        spdlog::error("[TechnaidIMU::setOutputMode]: Error while changing the mode to {} for imu no: {} !", outputMode_[index].name, index);
         return false;
     }
 }
@@ -71,7 +101,7 @@ void* TechnaidIMU::update(void) {
 
     std::chrono::steady_clock::time_point time0;
     while(!exitSignalReceived) {
-        if (!isInitialized_) return NULL; // if not initialized, immediately return
+        if (!isInitialized_ || !hasMode_) continue; // if not or no IMU has a mode initialized, immediately return
 
         // Pooling
         canFrame_.can_id = BROADCAST_ID;
@@ -96,6 +126,7 @@ void* TechnaidIMU::update(void) {
 
             exit = true;
             for (int i = 0; i < numberOfIMUs_; i++) {
+                if(dataSize_[i] == 0) continue; // no output is set for this IMU. continue
                 if (canFrame_.can_id == networkId_[i] + 16) {
                     for (int j = 0; j < canFrame_.can_dlc; j++) {
                         data_bytes_multi[count[i]][i] = canFrame_.data[j];
@@ -107,6 +138,7 @@ void* TechnaidIMU::update(void) {
         }
 
         for (int i = 0; i < numberOfIMUs_; i++) {
+            if(dataSize_[i] == 0) continue; // no output is set for this IMU. continue
             if (count[i] == dataSize_[i]) {
 
                 // get the i th column
@@ -118,9 +150,16 @@ void* TechnaidIMU::update(void) {
                 float *data_float;
                 data_float = (float *) data_bytes;
 
-                acceleration_(0, i) = data_float[0]; // acc x
-                acceleration_(1, i) = data_float[1]; // acc y
-                acceleration_(2, i) = data_float[2]; // acc z
+                if(outputMode_[i].name == "acc"){
+                    acceleration_(0, i) = data_float[0]; // acc x
+                    acceleration_(1, i) = data_float[1]; // acc y
+                    acceleration_(2, i) = data_float[2]; // acc z
+                } else if (outputMode_[i].name == "quat"){
+                    quaternion_(0, i) = data_float[0]; // quat x
+                    quaternion_(1, i) = data_float[1]; // quat y
+                    quaternion_(2, i) = data_float[2]; // quat z
+                    quaternion_(3, i) = data_float[3]; // quat z
+                }
 
             } else {
                 spdlog::warn("[TechnaidIMU::update()]: Data was not successfully read for IMU no: {}!", serialNo_[i]);
@@ -134,12 +173,19 @@ void* TechnaidIMU::update(void) {
 bool TechnaidIMU::validateParameters() {
 
     numberOfIMUs_ = serialNo_.size();
-    if(networkId_.size()!=numberOfIMUs_ || outputMode_.size()!=numberOfIMUs_ || dataSize_.size()!=numberOfIMUs_){
+    if(networkId_.size()!=numberOfIMUs_ || location_.size()!=numberOfIMUs_){
         spdlog::error("[TechnaidIMU::readParameters()]: Size of the parameters are not same!");
         return false;
     }
 
+    for(int i = 0; i<numberOfIMUs_; i++){
+        dataSize_.push_back(0); // initializing all elements of dataSize to 0.
+        IMUOutputModeStruct defaultOutputModeStruct;
+        outputMode_.push_back(defaultOutputModeStruct);
+    }
+
     acceleration_ = Eigen::MatrixXd::Zero(3, numberOfIMUs_);
+    quaternion_ = Eigen::MatrixXd::Zero(4, numberOfIMUs_);
 
     return true;
 }
@@ -236,9 +282,39 @@ Eigen::MatrixXd& TechnaidIMU::getAcceleration() {
     return acceleration_;
 }
 
+Eigen::MatrixXd & TechnaidIMU::getQuaternion() {
+
+    return quaternion_;
+}
+
+int& TechnaidIMU::getNumberOfIMUs_() {
+
+    return numberOfIMUs_;
+}
+
+IMUOutputModeStruct & TechnaidIMU::getOutputMode_(int index) {
+
+    return outputMode_[index];
+}
+
 void TechnaidIMU::signalHandler(int signum) {
 
     exitSignalReceived = 1;
     std::raise(SIGTERM); // clean exit
 
+}
+
+int TechnaidIMU::getIndex(std::vector<int> vec, int element) {
+
+    auto it = find(vec.begin(), vec.end(), element);
+    int index;
+
+    // If element was found
+    if (it != vec.end()) {
+        index = it - vec.begin();
+    } else {
+        index = -1;
+        spdlog::error("[TechnaidIMU::getIndex]: Index not found");
+    }
+    return index;
 }

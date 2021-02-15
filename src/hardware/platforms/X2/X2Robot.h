@@ -103,6 +103,9 @@ class X2Robot : public Robot {
     //Todo: generalise sensors
     Eigen::VectorXd interactionForces_;
     Eigen::MatrixXd contactAccelerations_; // rows are x y z, columns are different contact points
+    Eigen::MatrixXd contactQuaternions_; // rows are x y z, w columns are different contact points
+    Eigen::MatrixXd backpackAccelerations_; // rows are x y z, columns are different contact points
+    Eigen::MatrixXd backpackQuaternions_; // rows are x y z, w columns are different contact points
 
     std::string robotName_;
 
@@ -239,9 +242,42 @@ class X2Robot : public Robot {
     /**
     * \brief Get the acceleration at the contact points
     *
-    * \return Eigen::MatrixXd rows represents x y z, columns represents differet contacts
+    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
     */
     Eigen::MatrixXd& getContactAccelerations();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    */
+    Eigen::MatrixXd& getContactQuaternions();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    */
+    Eigen::MatrixXd& getBackpackAccelerations();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    */
+    Eigen::MatrixXd& getBackpackQuaternions();
+
+    /**
+    * \brief Set the contact IMU Mode
+    *
+    */
+    bool setContactIMUMode(IMUOutputMode imuOutputMode);
+
+    /**
+    * \brief Set the contact IMU Mode
+    *
+    */
+    bool setBackpackIMUMode(IMUOutputMode imuOutputMode);
 
     /**
     * \brief Get robot parameters

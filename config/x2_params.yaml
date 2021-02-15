@@ -12,8 +12,7 @@ X2_SRA_A: # That ends with 0.9999 are not investigated yet
     can_channel: "can1"
     serial_no: [596, 597]
     network_id: [141, 142]
-    output_mode: ['E', 'E'] # see definitions.h for the output modes
-    data_size: [12, 12] # todo: automatically set based on the output mode
+    location: ['b', 'c'] # b for backpack, c for cuff/contact
 
 
 X2_SRA_B: # That ends with 0.9999 are not investigated yet
@@ -30,5 +29,4 @@ X2_SRA_B: # That ends with 0.9999 are not investigated yet
     can_channel: "can1"
     serial_no: [596, 597]
     network_id: [141, 142]
-    output_mode: ['E', 'E'] # see definitions.h for the output modes
-    data_size: [12, 12] # todo: automatically set based on the output mode
+    location: ['b', 'c'] # b for backpack, c for cuff/contact

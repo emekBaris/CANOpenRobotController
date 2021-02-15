@@ -37,7 +37,7 @@ void X2DemoMachineROS::update() {
     publishJointStates();
     publishInteractionForces();
 #endif
-    publishContactAccelerations(); //todo: move inside ifndef SIM
+//    publishContactAccelerations(); //todo: move inside ifndef SIM
 }
 
 void X2DemoMachineROS::publishJointStates() {

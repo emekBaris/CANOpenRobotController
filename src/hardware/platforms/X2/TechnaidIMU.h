@@ -31,6 +31,9 @@
 #define CHECK_COMMUNICATION 'c'
 #define IMU_VERSION 'v'
 
+#define SIZE_ACCELERATION 12
+#define SIZE_QUATERNION 16
+
 // basics
 #include <stdio.h>
 #include <string.h>
@@ -63,9 +66,19 @@ struct IMUParameters {
     std::string canChannel;
     std::vector<int> serialNo;
     std::vector<int> networkId;
-    std::vector<std::string> outputMode;
-    std::vector<int> dataSize;
+    std::vector<char> location;
+};
 
+// value is the datasize of each mode
+enum IMUOutputMode {
+    ACCELERATION = 12,
+    QUATERNION = 16
+};
+
+struct IMUOutputModeStruct{
+    std::string name = "XX";
+    unsigned char code = 'x';
+    int dataSize = 0;
 };
 
 class TechnaidIMU{
@@ -79,33 +92,41 @@ public:
     bool initialize();
     void* update();
     static void * updateHelper(void * This);
+    bool setOutputMode(int networkId, IMUOutputMode imuOutputMode);
     void exit();
     Eigen::MatrixXd& getAcceleration();
+    Eigen::MatrixXd& getQuaternion();
+    int& getNumberOfIMUs_();
+    IMUOutputModeStruct& getOutputMode_(int index);
 
 private:
     int numberOfIMUs_;
-
-    std::string canChannel_;
     int canSocket_;
     struct can_frame canFrame_;
 
     pthread_t updateThread;
 
     bool isInitialized_;
+    bool hasMode_; // become true if at least 1 IMU's mode has been set
 
     // vectors to keep parameters of each imu. Read from yaml file
-    std::vector<int> serialNo_, networkId_, dataSize_;
-    std::vector<std::string> outputMode_;
+    std::string canChannel_;
+    std::vector<int> serialNo_, networkId_;
+    std::vector<char> location_;
+
+    std::vector<IMUOutputModeStruct> outputMode_;
+    std::vector<int> dataSize_;
 
     Eigen::MatrixXd acceleration_; // rows are the x y z axes of acceleration measurements, columns are different sensors
+    Eigen::MatrixXd quaternion_; // rows are the x y z w axes of quaternion measurements, columns are different sensors
 
-    bool setOutputMode(int networkId, unsigned char mode);
     bool validateParameters();
     bool canConfiguration();
     bool checkCommunication();
     bool startUpdateThread();
 
     static void signalHandler(int signum);
+    int getIndex(std::vector<int> vec, int element);
 };
 
 
