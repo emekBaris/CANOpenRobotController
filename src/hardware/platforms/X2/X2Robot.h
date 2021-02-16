@@ -107,11 +107,55 @@ class X2Robot : public Robot {
     Eigen::MatrixXd backpackAccelerations_; // rows are x y z, columns are different contact points
     Eigen::MatrixXd backpackQuaternions_; // rows are x y z, w columns are different contact points
 
+    double backPackAngleOnMedianPlane_;
+
+    double correctedContactAccelerationsZ_; // todo: extend to multi-contact
+    double filteredCorrectedContactAccelerationsZ_;
+    double previousFilteredCorrectedContactAccelerationsZ_;
+
     std::string robotName_;
 
     bool initializeRobotParams(std::string robotName);
 
     static void signalHandler(int signum);
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    */
+    Eigen::MatrixXd getContactAccelerations();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, w columns represents different contacts
+    */
+    Eigen::MatrixXd getContactQuaternions();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z
+    */
+    Eigen::MatrixXd getBackpackAccelerations();
+
+    /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, w
+    */
+    Eigen::MatrixXd getBackpackQuaternions();
+
+    /**
+    * \brief updates the angle of back pack with respect to - gravity vector on median plane
+    */
+    void updateBackpackAngleOnMedianPlane();
+
+    /**
+    * \brief updates gravity compensated contact acceleration values
+    */
+    void updateCorrectedContactAccelerations();
 
 #ifdef SIM
     ros::NodeHandle* nodeHandle_;
@@ -240,32 +284,25 @@ class X2Robot : public Robot {
     Eigen::VectorXd& getInteractionForce();
 
     /**
-    * \brief Get the acceleration at the contact points
+    * \brief Get the backpack angle on median plane with respect to - gravity axes
     *
-    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    * \return double& reference to backpack angle
     */
-    Eigen::MatrixXd& getContactAccelerations();
+    double& getBackPackAngleOnMedianPlane();
 
     /**
-    * \brief Get the acceleration at the contact points
+    * \brief Get the gravity compensated contact acceleration z //todo: extend to 4 DoF
     *
-    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    * \return double& reference to gravity compensated contact acceleration z
     */
-    Eigen::MatrixXd& getContactQuaternions();
+    double& getCorrectedContactAccelerationsZ_();
 
     /**
-    * \brief Get the acceleration at the contact points
+    * \brief Get the filtered gravity compensated contact acceleration z //todo: extend to 4 DoF
     *
-    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
+    * \return double& reference to filtered gravity compensated contact acceleration z
     */
-    Eigen::MatrixXd& getBackpackAccelerations();
-
-    /**
-    * \brief Get the acceleration at the contact points
-    *
-    * \return Eigen::MatrixXd rows represents x y z, columns represents different contacts
-    */
-    Eigen::MatrixXd& getBackpackQuaternions();
+    double& getFilteredCorrectedContactAccelerationsZ_();
 
     /**
     * \brief Set the contact IMU Mode
@@ -360,7 +397,7 @@ class X2Robot : public Robot {
        */
     std::string& getRobotName();
 
-    double accCorrectedZ_; // todo: delete
+    double accCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
 
 
 #ifdef SIM

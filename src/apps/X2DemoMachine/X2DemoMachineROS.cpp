@@ -97,6 +97,7 @@ void X2DemoMachineROS::publishInteractionForces() {
 
 void X2DemoMachineROS::publishContactAccelerations() {
 
+    //todo: change message type such that it has multiple IMUs and filtered and non filtered values
     for(int i = 0; i<X2_NUM_IMUS; i++){
         sensor_msgs::Imu imuMsg;
         imuMsg.header.stamp = ros::Time::now();
@@ -105,7 +106,8 @@ void X2DemoMachineROS::publishContactAccelerations() {
 //        imuMsg.linear_acceleration.y = 0*robot_->getContactAccelerations()(1, i);
 //        imuMsg.linear_acceleration.z = robot_->getContactAccelerations()(2, i);
 
-        imuMsg.linear_acceleration.z = robot_->accCorrectedZ_;
+        imuMsg.linear_acceleration.y = robot_->getCorrectedContactAccelerationsZ_();
+        imuMsg.linear_acceleration.z = robot_->getFilteredCorrectedContactAccelerationsZ_();
 
         imuPublisher_[i].publish(imuMsg);
     }

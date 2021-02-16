@@ -55,6 +55,9 @@ X2Robot::X2Robot() : Robot() {
     x2Parameters.c2 = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
     x2Parameters.cuffWeights = Eigen::VectorXd::Zero(X2_NUM_FORCE_SENSORS);
     x2Parameters.forceSensorScaleFactor = Eigen::VectorXd::Zero(X2_NUM_FORCE_SENSORS);
+    backPackAngleOnMedianPlane_ = 0.0;
+    correctedContactAccelerationsZ_ = 0.0; // todo get number of contacts and initialize accordingly
+    previousFilteredCorrectedContactAccelerationsZ_ = 0.0;
 
     #ifdef NOROBOT
         simJointPositions_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
@@ -350,7 +353,7 @@ bool X2Robot::calibrateForceSensors() {
     }
 }
 
-Eigen::MatrixXd & X2Robot::getContactAccelerations() {
+Eigen::MatrixXd X2Robot::getContactAccelerations() {
 
     // todo: use backpack angle for compensation
     int contactIndex = 0;
@@ -367,7 +370,7 @@ Eigen::MatrixXd & X2Robot::getContactAccelerations() {
     return contactAccelerations_;
 }
 
-Eigen::MatrixXd & X2Robot::getContactQuaternions() {
+Eigen::MatrixXd X2Robot::getContactQuaternions() {
 
     int contactIndex = 0;
     for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
@@ -383,7 +386,7 @@ Eigen::MatrixXd & X2Robot::getContactQuaternions() {
     return contactQuaternions_;
 }
 
-Eigen::MatrixXd & X2Robot::getBackpackAccelerations() {
+Eigen::MatrixXd X2Robot::getBackpackAccelerations() {
 
     // todo: use backpack angle for compensation
     int backpackIndex = 0;
@@ -401,7 +404,7 @@ Eigen::MatrixXd & X2Robot::getBackpackAccelerations() {
 
 }
 
-Eigen::MatrixXd & X2Robot::getBackpackQuaternions() {
+Eigen::MatrixXd X2Robot::getBackpackQuaternions() {
     // todo: use backpack angle for compensation
     int backpackIndex = 0;
     for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
@@ -414,6 +417,64 @@ Eigen::MatrixXd & X2Robot::getBackpackQuaternions() {
         }
     }
     return backpackQuaternions_;
+}
+
+void X2Robot::updateBackpackAngleOnMedianPlane() {
+
+    //todo: combine two back pack functions together?
+    Eigen::Quaterniond q;
+    Eigen::MatrixXd quatEigen = getBackpackQuaternions();
+    q.x() = quatEigen(0,0);
+    q.y() = quatEigen(1,0);
+    q.z() = quatEigen(2,0);
+    q.w() = quatEigen(3,0);
+
+    Eigen::Matrix3d R = q.toRotationMatrix();
+    double thetaBase = std::atan2(R(2,2), R(2,0));
+
+    backPackAngleOnMedianPlane_ = thetaBase;
+}
+
+void X2Robot::updateCorrectedContactAccelerations() {
+
+    // NOTE ASSUMES SINGLE CONTACT: TODO: PROPER MULTI CONTACT IMPLEMENTATION
+
+    Eigen::MatrixXd accMeasured = getContactAccelerations();
+
+    // todo: proper angle calculation. This assumes backPackAngleOnMedianPlane_ = contactAngle
+    Eigen::Matrix3d R_BC;
+    R_BC << cos(backPackAngleOnMedianPlane_),  0, sin(backPackAngleOnMedianPlane_),
+            0,               1, 0,
+            -sin(backPackAngleOnMedianPlane_), 0, cos(backPackAngleOnMedianPlane_);
+
+    Eigen::MatrixXd B_g(3,1);
+    Eigen::MatrixXd C_g(3,1);
+    B_g << 9.81, 0, 0;
+
+    C_g = R_BC.transpose()*B_g;
+
+    Eigen::MatrixXd accCorrected(3,1);
+
+    accCorrected = accMeasured - C_g;
+    correctedContactAccelerationsZ_ =  accCorrected(2,0);
+
+    double alpha = (2*M_PI*0.0025*accCutoffFreq)/(2*M_PI*0.0025*accCutoffFreq+1); //TODO: get dt from main
+
+    filteredCorrectedContactAccelerationsZ_ = alpha*correctedContactAccelerationsZ_ + (1.0-alpha)*previousFilteredCorrectedContactAccelerationsZ_;
+    previousFilteredCorrectedContactAccelerationsZ_ = filteredCorrectedContactAccelerationsZ_;
+
+}
+
+double & X2Robot::getBackPackAngleOnMedianPlane() {
+    return backPackAngleOnMedianPlane_;
+}
+
+double & X2Robot::getCorrectedContactAccelerationsZ_() {
+    return correctedContactAccelerationsZ_;
+}
+
+double & X2Robot::getFilteredCorrectedContactAccelerationsZ_() {
+    return filteredCorrectedContactAccelerationsZ_;
 }
 
 RobotParameters & X2Robot::getRobotParameters() {
@@ -618,6 +679,8 @@ void X2Robot::freeMemory() {
 void X2Robot::updateRobot() {
     //TODO: generalise sensors update
     Robot::updateRobot();
+    updateBackpackAngleOnMedianPlane();
+    updateCorrectedContactAccelerations();
 }
 
 Eigen::VectorXd X2Robot::getFeedForwardTorque(int motionIntend) {
