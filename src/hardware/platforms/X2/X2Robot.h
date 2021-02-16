@@ -52,7 +52,7 @@
 // todo move to param
 #define X2_NUM_JOINTS 4
 #define X2_NUM_FORCE_SENSORS 4
-#define X2_NUM_IMUS 2
+#define X2_NUM_IMUS 2 //todo: instrad get from imu parameters
 
 // robot name is used to access the properties of the correct robot version
 #define X2_NAME X2_MELB_A
@@ -359,6 +359,8 @@ class X2Robot : public Robot {
        * \brief get the robot name
        */
     std::string& getRobotName();
+
+    double accCorrectedZ_; // todo: delete
 
 
 #ifdef SIM

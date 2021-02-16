@@ -37,7 +37,7 @@ void X2DemoMachineROS::update() {
     publishJointStates();
     publishInteractionForces();
 #endif
-//    publishContactAccelerations(); //todo: move inside ifndef SIM
+    publishContactAccelerations(); //todo: move inside ifndef SIM
 }
 
 void X2DemoMachineROS::publishJointStates() {
@@ -101,12 +101,15 @@ void X2DemoMachineROS::publishContactAccelerations() {
         sensor_msgs::Imu imuMsg;
         imuMsg.header.stamp = ros::Time::now();
         imuMsg.header.frame_id = "ICFA" + robot_->getRobotParameters().imuParameters.serialNo[i];
-        imuMsg.linear_acceleration.x = robot_->getContactAccelerations()(0, i);
-        imuMsg.linear_acceleration.y = robot_->getContactAccelerations()(1, i);
-        imuMsg.linear_acceleration.z = robot_->getContactAccelerations()(2, i);
+//        imuMsg.linear_acceleration.x = 0*robot_->getContactAccelerations()(0, i);
+//        imuMsg.linear_acceleration.y = 0*robot_->getContactAccelerations()(1, i);
+//        imuMsg.linear_acceleration.z = robot_->getContactAccelerations()(2, i);
+
+        imuMsg.linear_acceleration.z = robot_->accCorrectedZ_;
 
         imuPublisher_[i].publish(imuMsg);
     }
+
 }
 
 void X2DemoMachineROS::setNodeHandle(ros::NodeHandle &nodeHandle) {

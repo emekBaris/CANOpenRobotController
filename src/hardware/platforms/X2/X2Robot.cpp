@@ -369,7 +369,6 @@ Eigen::MatrixXd & X2Robot::getContactAccelerations() {
 
 Eigen::MatrixXd & X2Robot::getContactQuaternions() {
 
-    // todo: use backpack angle for compensation
     int contactIndex = 0;
     for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
         if(x2Parameters.imuParameters.location[imuIndex] == 'c'){

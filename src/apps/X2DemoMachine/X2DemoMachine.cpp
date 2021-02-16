@@ -65,6 +65,7 @@ void X2DemoMachine::init(int argc, char *argv[]) {
     logHelper.add(robot_->getTorque(), "JointTorques");
     logHelper.add(x2DemoState->getDesiredJointTorques(), "DesiredJointTorques");
     logHelper.add(robot_->getInteractionForce(), "InteractionForces");
+    logHelper.add(robot_->accCorrectedZ_, "Acceleration");
     //    logHelper.add(x2DemoState->virtualMassRatio_, "virtualMassRatio");
 
     logHelper.startLogger();

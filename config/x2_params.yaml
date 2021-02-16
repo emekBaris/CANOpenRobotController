@@ -12,7 +12,7 @@ X2_SRA_A: # That ends with 0.9999 are not investigated yet
     can_channel: "can1"
     serial_no: [596, 597]
     network_id: [141, 142]
-    location: ['b', 'c'] # b for backpack, c for cuff/contact
+    location: ['c', 'b'] # b for backpack, c for cuff/contact
 
 
 X2_SRA_B: # That ends with 0.9999 are not investigated yet
