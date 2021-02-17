@@ -102,7 +102,7 @@ public:
 private:
     int numberOfIMUs_;
     int canSocket_;
-    struct can_frame canFrame_;
+//    struct can_frame canFrame_;
 
     pthread_t updateThread;
 

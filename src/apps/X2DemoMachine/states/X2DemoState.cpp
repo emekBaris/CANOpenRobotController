@@ -12,16 +12,20 @@ void X2DemoState::entry(void) {
               << "===================" << std::endl
               << "===================" << std::endl;
 
+    robot_->initTorqueControl();
     // set dynamic parameter server
     dynamic_reconfigure::Server<CORC::dynamic_paramsConfig>::CallbackType f;
     f = boost::bind(&X2DemoState::dynReconfCallback, this, _1, _2);
     server_.setCallback(f);
 
-//    robot_->calibrateForceSensors();
-//    robot_->homing();
+    robot_->calibrateForceSensors();
+    robot_->homingWithImu();
 
-    robot_->setBackpackIMUMode(IMUOutputMode::QUATERNION);
+//    robot_->setBackpackIMUMode(IMUOutputMode::QUATERNION);
     robot_->setContactIMUMode(IMUOutputMode::ACCELERATION);
+
+    std::vector<int> homingDirection{ -1, 1, 0, 0 };
+//    robot_->homing(homingDirection);
 
     time0 = std::chrono::steady_clock::now();
 }
@@ -34,7 +38,7 @@ void X2DemoState::during(void) {
 
     } else if(controller_mode_ == 2){ // zero velocity mode
         desiredJointVelocities_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-        double A = 60.0*M_PI/180.0;
+        double A = 0.0*M_PI/180.0; //60
         double T = 2.0;
         double time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - time0).count()/1000.0;
         desiredJointVelocities_[1] = A*sin(2*M_PI/T*time);
@@ -46,7 +50,8 @@ void X2DemoState::during(void) {
         else motionIntend = 1;
 
         desiredJointTorques_ = robot_->getFeedForwardTorque(motionIntend);
-        std::cout<<desiredJointTorques_<<std::endl;
+//        std::cout<<desiredJointTorques_<<std::endl;
+//        std::cout<<robot_->getInteractionForce()[1]<<std::endl;
         robot_->setTorque(desiredJointTorques_);
 
     } else if(controller_mode_ == 4){ // virtual mass controller
@@ -58,21 +63,25 @@ void X2DemoState::during(void) {
         if(robot_->getPosition()[1]>M_PI/4.0) motionIntend = -1;
         else motionIntend = 1;
 
-        desiredInteractionForce_ = x2DemoMachineRos_->interactionForceCommand_[1]; //todo: uncomment in muliti robot control
+//        desiredInteractionForce_ = x2DemoMachineRos_->interactionForceCommand_[1]; //todo: uncomment in muliti robot control
 
         desiredJointAcceleration_ = (1/(robot_->getRobotParameters().m[1]*virtualMassRatio_))*J*(robot_->getInteractionForce()[1] - desiredInteractionForce_);
+        robot_->desiredJointAcceleration_ = desiredJointAcceleration_;
 
-        feedBackTorque[1] = (1.0/virtualMassRatio_-1)*J*robot_->getInteractionForce()[1] -
-                            (1.0/virtualMassRatio_)*J*desiredInteractionForce_;
+//        feedBackTorque[1] = (1.0/virtualMassRatio_-1)*J*robot_->getInteractionForce()[1] -
+//                            (1.0/virtualMassRatio_)*J*desiredInteractionForce_;
+
+        feedBackTorque[1] = robot_->getRobotParameters().m[1]*desiredJointAcceleration_ - J*robot_->getInteractionForce()[1];
         desiredJointTorques_ = robot_->getFeedForwardTorque(motionIntend) + feedBackTorque;
         robot_->setTorque(desiredJointTorques_);
-//        std::cout<<"robot: "<< robot_->getRobotName()<<std::endl;
-//        std::cout<<"desired: "<<desiredInteractionForce_<<std::endl;
-//        std::cout<<"force: "<<robot_->getInteractionForce()[1]<<std::endl;
-//        std::cout<<"ff: "<<robot_->getFeedForwardTorque(motionIntend)[1]<<std::endl;
-//        std::cout<<"fb: "<<feedBackTorque[1]<<std::endl;
-//        std::cout<<"total: "<<desiredJointTorques_[1]<<std::endl;
-//        std::cout<<"***************"<<std::endl;
+
+        std::cout<<"robot: "<< robot_->getRobotName()<<std::endl;
+        std::cout<<"desired: "<<desiredInteractionForce_<<std::endl;
+        std::cout<<"force: "<<robot_->getInteractionForce()[1]<<std::endl;
+        std::cout<<"ff: "<<robot_->getFeedForwardTorque(motionIntend)[1]<<std::endl;
+        std::cout<<"fb: "<<feedBackTorque[1]<<std::endl;
+        std::cout<<"total: "<<desiredJointTorques_[1]<<std::endl;
+        std::cout<<"***************"<<std::endl;
     } else if(controller_mode_ == 5){ // Admittance control
 
         double b0, b1, a1;
@@ -136,6 +145,14 @@ void X2DemoState::during(void) {
 
         desiredJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         robot_->setTorque(desiredJointTorques_);
+        std::cout<<"backpack: "<< rad2deg(robot_->getBackPackAngleOnMedianPlane())<<std::endl;
+        std::cout<<"contact: "<< rad2deg(robot_->getBackPackAngleOnMedianPlane() - robot_->getPosition()[0] + robot_->getPosition()[1])<<std::endl;
+//        std::cout<<"Joint 0: "<< rad2deg(robot_->getPosition()[0])<<std::endl;
+//        std::cout<<"Joint 1: "<< rad2deg(robot_->getPosition()[1])<<std::endl;
+//        std::cout<<"Joint 2: "<< rad2deg(robot_->getPosition()[2])<<std::endl;
+//        std::cout<<"Joint 3: "<< rad2deg(robot_->getPosition()[3])<<std::endl;
+//        std::cout<<180.0/M_PI*(robot_->getBackPackAngleOnMedianPlane() - robot_->getPosition()[0] + robot_->getPosition()[1])<<std::endl<<"*****"<<std::endl;
+//        std::cout<<"**************"<<std::endl;
 
     }
 }

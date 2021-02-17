@@ -33,7 +33,7 @@ JointDrivePairs kneeJDP{
  * Defines the Joint Limits of the X2 Exoskeleton
  *
  */
-ExoJointLimits X2JointLimits = {deg2rad(120), deg2rad(-30), deg2rad(120), deg2rad(0)};
+ExoJointLimits X2JointLimits = {deg2rad(120), deg2rad(-40), deg2rad(123.4), deg2rad(0)};
 
 static volatile sig_atomic_t exitHoming = 0;
 
@@ -325,15 +325,21 @@ Eigen::VectorXd &X2Robot::getInteractionForce() {
 
     //todo: add backpack angle
     Eigen::VectorXd cuffCompensation = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-    cuffCompensation[0] = x2Parameters.cuffWeights[0] * sin(getPosition()[0]);
-    cuffCompensation[1] = x2Parameters.cuffWeights[1] * sin(getPosition()[1] - getPosition()[0]);
-    cuffCompensation[2] = x2Parameters.cuffWeights[2] * sin(getPosition()[2]);
-    cuffCompensation[3] = x2Parameters.cuffWeights[3] * sin(getPosition()[3] - getPosition()[2]);
+    cuffCompensation[0] = x2Parameters.cuffWeights[0] * sin(backPackAngleOnMedianPlane_ - this->getPosition()[0]);
+    cuffCompensation[1] = x2Parameters.cuffWeights[1] * sin(backPackAngleOnMedianPlane_ - this->getPosition()[0] + this->getPosition()[1]);
+    cuffCompensation[2] = x2Parameters.cuffWeights[2] * sin(backPackAngleOnMedianPlane_ - this->getPosition()[2]);
+    cuffCompensation[3] = x2Parameters.cuffWeights[3] * sin(backPackAngleOnMedianPlane_ - this->getPosition()[2] + this->getPosition()[3]);
 
     //Update values
     for (int i = 0; i < X2_NUM_FORCE_SENSORS; i++) {
         interactionForces_[i] = forceSensors[i]->getForce() + cuffCompensation[i];
     }
+
+//    std::cout<<"force: "<<forceSensors[1]->getForce()<<std::endl;
+//    std::cout<<"cuff: "<<cuffCompensation[1]<<std::endl;
+//    std::cout<<"total: "<<interactionForces_[1]<<std::endl;
+//    std::cout<<"********"<<std::endl;
+
     return interactionForces_;
 }
 
@@ -383,6 +389,7 @@ Eigen::MatrixXd X2Robot::getContactQuaternions() {
             contactQuaternions_.col(contactIndex) = technaidIMUs->getQuaternion().col(imuIndex);
         }
     }
+    std::cout<<"CONTACT QUAT: "<<contactQuaternions_<<std::endl;
     return contactQuaternions_;
 }
 
@@ -430,7 +437,7 @@ void X2Robot::updateBackpackAngleOnMedianPlane() {
     q.w() = quatEigen(3,0);
 
     Eigen::Matrix3d R = q.toRotationMatrix();
-    double thetaBase = std::atan2(R(2,2), R(2,0));
+    double thetaBase = -std::atan2(-R(2,2), -R(2,0));
 
     backPackAngleOnMedianPlane_ = thetaBase;
 }
@@ -439,13 +446,14 @@ void X2Robot::updateCorrectedContactAccelerations() {
 
     // NOTE ASSUMES SINGLE CONTACT: TODO: PROPER MULTI CONTACT IMPLEMENTATION
 
-    Eigen::MatrixXd accMeasured = getContactAccelerations();
+    Eigen::MatrixXd accMeasured = this->getContactAccelerations();
 
     // todo: proper angle calculation. This assumes backPackAngleOnMedianPlane_ = contactAngle
     Eigen::Matrix3d R_BC;
-    R_BC << cos(backPackAngleOnMedianPlane_),  0, sin(backPackAngleOnMedianPlane_),
+    double contactAngleOnMedianPlane = backPackAngleOnMedianPlane_ - this->getPosition()[0] + this->getPosition()[1];
+    R_BC << cos(contactAngleOnMedianPlane),  0, sin(contactAngleOnMedianPlane),
             0,               1, 0,
-            -sin(backPackAngleOnMedianPlane_), 0, cos(backPackAngleOnMedianPlane_);
+            -sin(contactAngleOnMedianPlane), 0, cos(contactAngleOnMedianPlane);
 
     Eigen::MatrixXd B_g(3,1);
     Eigen::MatrixXd C_g(3,1);
@@ -486,19 +494,20 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
                      float homingSpeed, float maxTime) {
     std::vector<bool> success(X2_NUM_JOINTS, false);
     std::chrono::steady_clock::time_point time0;
-    this->initVelocityControl();
     signal(SIGINT, signalHandler); // check if ctrl + c is pressed
 
     for (int i = 0; i < X2_NUM_JOINTS; i++) {
         if (homingDirection[i] == 0) continue;  // skip the joint if it is not asked to do homing
 
         Eigen::VectorXd desiredVelocity(X2_NUM_JOINTS);
+        desiredVelocity = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         std::chrono::steady_clock::time_point firstTimeHighTorque;  // time at the first time joint exceed thresholdTorque
         bool highTorqueReached = false;
 
         desiredVelocity[i] = homingSpeed * homingDirection[i] / std::abs(homingDirection[i]);  // setting the desired velocity by using the direction
         time0 = std::chrono::steady_clock::now();
 
+        this->initVelocityControl();
         spdlog::debug("Homing Joint {} ...", i);
 
         while (success[i] == false &&
@@ -537,12 +546,15 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
                 if (homingDirection[i] > 0)
                     ((X2Joint *)this->joints[i])->setPositionOffset(X2JointLimits.kneeMax);
                 else
-                    ((X2Joint *)this->joints[i])->setPositionOffset(X2JointLimits.kneeMin);
+                    ((X2Joint *)this->joints[i])->setPositionOffset(-X2JointLimits.kneeMin);
             }
 
         } else {
             spdlog::error("Homing Failed for Joint {} .", i);
         }
+        // so that joints fall back
+        this->initTorqueControl();
+        sleep(1.5);
     }
     // Checking if all commanded joint successfully homed
     for (int i = 0; i < X2_NUM_JOINTS; i++) {
@@ -550,6 +562,39 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
         if (success[i] == false) return false;
     }
     return true;  // will come here if all joints successfully homed
+}
+
+bool X2Robot::homingWithImu() {
+
+    setBackpackIMUMode(IMUOutputMode::QUATERNION);
+    setContactIMUMode(IMUOutputMode::QUATERNION);
+//    sleep(10.5);
+    updateBackpackAngleOnMedianPlane();
+
+    Eigen::Quaterniond q;
+    Eigen::MatrixXd quatEigen = getContactQuaternions();
+    q.x() = quatEigen(0,0);
+    q.y() = quatEigen(1,0);
+    q.z() = quatEigen(2,0);
+    q.w() = quatEigen(3,0);
+
+//    std::cout<<"qx: "<<q.x()<<std::endl;
+//    std::cout<<"qy: "<<q.y()<<std::endl;
+//    std::cout<<"qz: "<<q.z()<<std::endl;
+//    std::cout<<"qw: "<<q.w()<<std::endl;
+
+    Eigen::Matrix3d R = q.toRotationMatrix();
+
+//    std::cout<<"R: "<< R<<std::endl;
+    double thetaContact = -std::atan2(-R(2,2), -R(2,0));
+
+    std::cout<<"thetaContact: "<<rad2deg(thetaContact)<<std::endl;
+    std::cout<<"backPackAngleOnMedianPlane_: "<<rad2deg(backPackAngleOnMedianPlane_)<<std::endl;
+    std::cout<<"joint 0: "<<rad2deg(getPosition()[0])<<std::endl;
+    std::cout<<"offset: "<<rad2deg(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_)<<std::endl;
+
+    ((X2Joint *)this->joints[1])->setPositionOffset(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_);
+
 }
 
 bool X2Robot::initialiseJoints() {

@@ -56,6 +56,27 @@ bool TechnaidIMU::setOutputMode(int index, IMUOutputMode imuOutputMode) {
         return false;
     }
 
+    pthread_cancel(updateThread);
+
+    struct can_frame canFrame;
+
+//    struct timeval timeout = {1, }; // 10 ms timout
+//    fd_set readSet;
+//    FD_ZERO(&readSet);
+//    FD_SET(canSocket_, &readSet);
+//
+//    while (select((canSocket_ + 1), &readSet, NULL, NULL, &timeout) && !exitSignalReceived) {
+//        read(canSocket_, &canFrame, sizeof(struct can_frame)); // read anything at the buffer
+//    }
+
+
+    // stop capture
+    canFrame.can_id = networkId_[index];
+    canFrame.can_dlc = 1;
+    canFrame.data[0] = STOP_DATA_CAPTURE;
+    write(canSocket_, &canFrame, sizeof(struct can_frame));
+    sleep(1);
+
     switch (imuOutputMode) {
         case ACCELERATION:
             outputMode_[index].name = "acc";
@@ -73,11 +94,11 @@ bool TechnaidIMU::setOutputMode(int index, IMUOutputMode imuOutputMode) {
             spdlog::error("Unhandled output mode!");
     }
 
-    canFrame_.can_id = networkId_[index];
-    canFrame_.can_dlc = 1;
-    canFrame_.data[0] = outputMode_[index].code;
+    canFrame.can_id = networkId_[index];
+    canFrame.can_dlc = 1;
+    canFrame.data[0] = outputMode_[index].code;
 
-    int writeByte = write(canSocket_, &canFrame_, sizeof(struct can_frame));
+    int writeByte = write(canSocket_, &canFrame, sizeof(struct can_frame));
 
     sleep(0.5);
 
@@ -87,9 +108,11 @@ bool TechnaidIMU::setOutputMode(int index, IMUOutputMode imuOutputMode) {
         if(imuOutputMode == IMUOutputMode::QUATERNION){
             spdlog::warn("Calibration started. Do not move IMUs for 6 seconds");
             sleep(6);
-        }
+        } else if(imuOutputMode == IMUOutputMode::ACCELERATION) sleep(1);
         spdlog::info("[TechnaidIMU::setOutputMode]: Mode is changed to {} for imu no: {}",outputMode_[index].name, index);
         hasMode_ = true;
+        startUpdateThread();
+        sleep(1);
         return true;
     } else {
         spdlog::error("[TechnaidIMU::setOutputMode]: Error while changing the mode to {} for imu no: {} !", outputMode_[index].name, index);
@@ -104,9 +127,10 @@ void* TechnaidIMU::update(void) {
         if (!isInitialized_ || !hasMode_) continue; // if not or no IMU has a mode initialized, immediately return
 
         // Pooling
-        canFrame_.can_id = BROADCAST_ID;
-        canFrame_.can_dlc = 0;
-        write(canSocket_, &canFrame_, sizeof(struct can_frame));
+        struct can_frame canFrame;
+        canFrame.can_id = BROADCAST_ID;
+        canFrame.can_dlc = 0;
+        write(canSocket_, &canFrame, sizeof(struct can_frame));
 
         int maxSize = 60;
         //specify the amount of data to read for each imu
@@ -122,14 +146,14 @@ void* TechnaidIMU::update(void) {
         bool exit = false;
         while (!exit && select((canSocket_ + 1), &readSet, NULL, NULL, &timeout) && !exitSignalReceived) {
             // stays in the loop until all data is received or timeout value is reached
-            read(canSocket_, &canFrame_, sizeof(struct can_frame));
+            read(canSocket_, &canFrame, sizeof(struct can_frame));
 
             exit = true;
             for (int i = 0; i < numberOfIMUs_; i++) {
                 if(dataSize_[i] == 0) continue; // no output is set for this IMU. continue
-                if (canFrame_.can_id == networkId_[i] + 16) {
-                    for (int j = 0; j < canFrame_.can_dlc; j++) {
-                        data_bytes_multi[count[i]][i] = canFrame_.data[j];
+                if (canFrame.can_id == networkId_[i] + 16) {
+                    for (int j = 0; j < canFrame.can_dlc; j++) {
+                        data_bytes_multi[count[i]][i] = canFrame.data[j];
                         count[i]++;
                     }
                 }
@@ -208,10 +232,11 @@ bool TechnaidIMU::canConfiguration() {
 bool TechnaidIMU::checkCommunication() {
 
     // send check communication command
-    canFrame_.can_id = BROADCAST_ID;
-    canFrame_.can_dlc = 1;
-    canFrame_.data[0] = CHECK_COMMUNICATION;
-    write(canSocket_, &canFrame_, sizeof(struct can_frame));
+    struct can_frame canFrame;
+    canFrame.can_id = BROADCAST_ID;
+    canFrame.can_dlc = 1;
+    canFrame.data[0] = CHECK_COMMUNICATION;
+    write(canSocket_, &canFrame, sizeof(struct can_frame));
 
     sleep(0.1);
 
@@ -226,9 +251,9 @@ bool TechnaidIMU::checkCommunication() {
     while(select((canSocket_ + 1), &readSet, NULL, NULL, &timeout) && !exitSignalReceived) {
         // stays in the loop as long as there is something to read
         std::cout<<" IN READ !!!"<<std::endl;
-        read(canSocket_, &canFrame_, sizeof(struct can_frame));
-        std::cout<<" ID: "<<canFrame_.can_id<<std::endl;
-        receivedIds.push_back(canFrame_.can_id);
+        read(canSocket_, &canFrame, sizeof(struct can_frame));
+        std::cout<<" ID: "<<canFrame.can_id<<std::endl;
+        receivedIds.push_back(canFrame.can_id);
     }
 
     // compare the number of IMUs in the network with the size of the parameters
@@ -266,10 +291,11 @@ bool TechnaidIMU::startUpdateThread() {
 void TechnaidIMU::exit() {
 
     for(int i = 0; i<numberOfIMUs_; i++){
-        canFrame_.can_id = networkId_[i];
-        canFrame_.can_dlc = 1;
-        canFrame_.data[0] = STOP_DATA_CAPTURE;
-        write(canSocket_, &canFrame_, sizeof(struct can_frame));
+        struct can_frame canFrame;
+        canFrame.can_id = networkId_[i];
+        canFrame.can_dlc = 1;
+        canFrame.data[0] = STOP_DATA_CAPTURE;
+        write(canSocket_, &canFrame, sizeof(struct can_frame));
 
         spdlog::info("Data capture ended on IMU with serial no {}.", serialNo_[i]);
     }

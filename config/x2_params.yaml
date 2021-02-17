@@ -6,7 +6,7 @@ X2_SRA_A: # That ends with 0.9999 are not investigated yet
   c0: [1.9999, 1.5761, 1.9999, 1.5761] # viscous fric constant of joints [N.s]
   c1: [2.9999, 2.5, 2.9999, 2.5] # coulomb friction const of joints [N.m]
   c2: [2.9999, 2.4839, 2.9999, 2.4839] # friction const related to sqrt of vel
-  cuff_weights: [3.69, 3.69, 3.69, 3.69] # cuff Weights [N]
+  cuff_weights: [44, 3.44, 44, 44] # cuff Weights [N]
   force_sensor_scale_factor: [0.1999, 0.246, 0.1999, 0.246] # scale factor of force sensors [N/sensor output]
   technaid_imu:
     can_channel: "can1"
@@ -23,7 +23,7 @@ X2_SRA_B: # That ends with 0.9999 are not investigated yet
   c0: [1.9999, 1.2173, 1.9999, 1.2173] # viscous fric constant of joints [N.s]
   c1: [2.9999, 2.7, 2.9999, 2.7] # coulomb friction const of joints [N.m]
   c2: [2.9999, 4.3807, 2.9999, 4.3807] # friction const related to sqrt of vel
-  cuff_weights: [3.69, 3.69, 3.69, 3.69] # cuff Weights [N]
+  cuff_weights: [44, 3.44, 44, 44] # cuff Weights [N]
   force_sensor_scale_factor: [0.1999, 0.194, 0.1999, 0.194] # scale factor of force sensors [N/sensor output]
   technaid_imu:
     can_channel: "can1"

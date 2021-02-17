@@ -344,6 +344,14 @@ class X2Robot : public Robot {
                 float delayTime = 0.2, float homingSpeed = 5 * M_PI / 180.0, float maxTime = 30.0);
 
     /**
+    * \brief homing by using IMU. premature version for 2 IMU. not ready for generalized use
+    *
+    * \return bool success of homing
+    */
+    bool homingWithImu();
+
+
+    /**
    * Determine if the currently generated trajectory is complete.
    * \return bool
    */
@@ -398,6 +406,7 @@ class X2Robot : public Robot {
     std::string& getRobotName();
 
     double accCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
+    double desiredJointAcceleration_; // todo: delete after machineROS has access to state
 
 
 #ifdef SIM
