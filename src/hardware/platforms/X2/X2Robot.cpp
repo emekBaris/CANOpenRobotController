@@ -58,6 +58,9 @@ X2Robot::X2Robot() : Robot() {
     backPackAngleOnMedianPlane_ = 0.0;
     correctedContactAccelerationsZ_ = 0.0; // todo get number of contacts and initialize accordingly
     previousFilteredCorrectedContactAccelerationsZ_ = 0.0;
+    previousJointVel_ = 0.0;
+    previousFilteredAccBias_ = 0.0;
+    t_step_ = 0.0025;
 
     #ifdef NOROBOT
         simJointPositions_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
@@ -418,7 +421,7 @@ Eigen::MatrixXd X2Robot::getBackpackQuaternions() {
         if(x2Parameters.imuParameters.location[imuIndex] == 'b'){
             if(technaidIMUs->getOutputMode_(imuIndex).name != "quat"){
                 spdlog::warn("Backpack IMU mode is not quaternion for imu no: . Returns 0", imuIndex);
-                backpackQuaternions_.col(backpackIndex) = Eigen::MatrixXd::Zero(3,1);
+                backpackQuaternions_.col(backpackIndex) = Eigen::MatrixXd::Zero(4,1);
             }
             backpackQuaternions_.col(backpackIndex) = technaidIMUs->getQuaternion().col(imuIndex);
         }
@@ -466,10 +469,32 @@ void X2Robot::updateCorrectedContactAccelerations() {
     accCorrected = accMeasured - C_g;
     correctedContactAccelerationsZ_ =  accCorrected(2,0);
 
-    double alpha = (2*M_PI*0.0025*accCutoffFreq)/(2*M_PI*0.0025*accCutoffFreq+1); //TODO: get dt from main
+    double alphaIMU = (2*M_PI*t_step_*accCutoffFreq)/(2*M_PI*t_step_*accCutoffFreq+1); //TODO: get dt from main
 
-    filteredCorrectedContactAccelerationsZ_ = alpha*correctedContactAccelerationsZ_ + (1.0-alpha)*previousFilteredCorrectedContactAccelerationsZ_;
+    filteredCorrectedContactAccelerationsZ_ = alphaIMU*correctedContactAccelerationsZ_ + (1.0-alphaIMU)*previousFilteredCorrectedContactAccelerationsZ_;
     previousFilteredCorrectedContactAccelerationsZ_ = filteredCorrectedContactAccelerationsZ_;
+
+    std::cout<<"filteredCorrectedContactAccelerationsZ_: "<<filteredCorrectedContactAccelerationsZ_<<std::endl;
+
+    jointVelDiff_ = ((getVelocity()[1] - getVelocity()[0]) - previousJointVel_)/t_step_;
+    std::cout<<"jointVelDiff_: "<<jointVelDiff_<<std::endl;
+
+    accBias_ = correctedContactAccelerationsZ_ - IMU_DISTANCE*jointVelDiff_;
+    std::cout<<"accBias_: "<<accBias_<<std::endl;
+
+    double alphaBias = (2*M_PI*t_step_*accBiasCutoffFreq)/(2*M_PI*t_step_*accBiasCutoffFreq+1); //TODO: get dt from main
+
+    filteredAccBias_ = alphaBias*accBias_ + (1.0-alphaBias)*previousFilteredAccBias_;
+    std::cout<<"filteredAccBias_: "<<filteredAccBias_<<std::endl;
+
+    mergedAcc_ = filteredCorrectedContactAccelerationsZ_ - filteredAccBias_;
+    std::cout<<"mergedAcc_: "<<mergedAcc_<<std::endl;
+
+    previousFilteredAccBias_ = filteredAccBias_;
+    previousJointVel_ = (getVelocity()[1] - getVelocity()[0]);
+
+
+
 
 }
 
@@ -590,7 +615,7 @@ bool X2Robot::homingWithImu() {
 
     std::cout<<"thetaContact: "<<rad2deg(thetaContact)<<std::endl;
     std::cout<<"backPackAngleOnMedianPlane_: "<<rad2deg(backPackAngleOnMedianPlane_)<<std::endl;
-    std::cout<<"joint 0: "<<rad2deg(getPosition()[0])<<std::endl;
+    std::cout<<"joint 0: "<<rad2deg(this->getPosition()[0])<<std::endl;
     std::cout<<"offset: "<<rad2deg(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_)<<std::endl;
 
     ((X2Joint *)this->joints[1])->setPositionOffset(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_);
@@ -741,8 +766,8 @@ Eigen::VectorXd X2Robot::getFeedForwardTorque(int motionIntend) {
     }
 
     Eigen::VectorXd ffTorque = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
-    ffTorque[1] = x2Parameters.m[1]*x2Parameters.s[1]*9.81*sin(jointPositions_[1] - jointPositions_[0]) + coulombFriction + x2Parameters.c0[1]*jointVelocities_[1];
-
+    ffTorque[1] = x2Parameters.m[1]*x2Parameters.s[1]*9.81*sin(backPackAngleOnMedianPlane_ - this->getPosition()[0] + this->getPosition()[1]) + coulombFriction + x2Parameters.c0[1]*jointVelocities_[1];
+//    std::cout<<"angle: "<<rad2deg(backPackAngleOnMedianPlane_ - this->getPosition()[0] + this->getPosition()[1])<<std::endl;
     return ffTorque;
 
 }

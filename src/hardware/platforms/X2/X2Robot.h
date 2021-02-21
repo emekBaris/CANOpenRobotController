@@ -53,6 +53,7 @@
 #define X2_NUM_JOINTS 4
 #define X2_NUM_FORCE_SENSORS 4
 #define X2_NUM_IMUS 2 //todo: instrad get from imu parameters
+#define IMU_DISTANCE 0.15
 
 // robot name is used to access the properties of the correct robot version
 #define X2_NAME X2_MELB_A
@@ -112,6 +113,15 @@ class X2Robot : public Robot {
     double correctedContactAccelerationsZ_; // todo: extend to multi-contact
     double filteredCorrectedContactAccelerationsZ_;
     double previousFilteredCorrectedContactAccelerationsZ_;
+    double previousJointVel_;
+    double jointVelDiff_;
+    double accBias_;
+    double filteredAccBias_;
+    double previousFilteredAccBias_;
+public:
+    double mergedAcc_;
+private:
+    double t_step_; // todo get from main
 
     std::string robotName_;
 
@@ -406,7 +416,9 @@ class X2Robot : public Robot {
     std::string& getRobotName();
 
     double accCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
+    double accBiasCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
     double desiredJointAcceleration_; // todo: delete after machineROS has access to state
+    double correctedDesiredJointAcceleration_; // todo: delete after machineROS has access to state
 
 
 #ifdef SIM
