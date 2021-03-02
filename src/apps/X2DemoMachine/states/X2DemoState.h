@@ -69,10 +69,11 @@ private:
     double mAdmittance_ = 5;
     double bAdmittance_ = 2;
 
+public:
     double kp_acc_;
     double ki_acc_;
-    double A_acc_;
-    double f_acc_;
+    double A_pos_;
+    double f_pos_;
     double accErrorArray_[ACC_ERROR_ARRAY_SIZE];
 
 public:
@@ -89,6 +90,9 @@ public:
 
     double checkInput_;
     double checkOutput_;
+
+    double k_interaction_;
+    double shiftPos_;
 
 
 };

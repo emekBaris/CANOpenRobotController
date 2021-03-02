@@ -51,7 +51,7 @@ void X2DemoState::entry(void) {
 }
 
 void X2DemoState::during(void) {
-    if(robot_->getBackPackAngleOnMedianPlane() - robot_->getPosition()[0] + robot_->getPosition()[1] >deg2rad(100.0)
+    if(robot_->getBackPackAngleOnMedianPlane() - robot_->getPosition()[0] + robot_->getPosition()[1] >deg2rad(90.0)
     || robot_->getBackPackAngleOnMedianPlane() - robot_->getPosition()[0] + robot_->getPosition()[1] <= deg2rad(-40.0)){
 
         spdlog::error("EMERGENCY ACTIVATED!!!!!!");
@@ -337,9 +337,11 @@ void X2DemoState::during(void) {
         double J = 0.1; // distance between knee joint and force sensor
         double time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - time0).count()/1000.0;
 
-//        desiredJointAcceleration_ = A_acc_*sin(2*M_PI*f_acc_*time);
-//        desiredJointAcceleration_ = 10.0;
-        desiredJointAcceleration_ = (1/(robot_->getRobotParameters().m[1]*virtualMassRatio_))*J*(robot_->getInteractionForce()[1] - desiredInteractionForce_);
+        robot_->targetJointPos = A_pos_*sin(2*M_PI*f_pos_*time) + shiftPos_;
+
+        robot_->desiredInteractionForce = -k_interaction_*(robot_->targetJointPos - robot_->getPosition()[1]);
+
+        desiredJointAcceleration_ = (1/(robot_->getRobotParameters().m[1]*virtualMassRatio_))*J*(robot_->getInteractionForce()[1] - robot_->desiredInteractionForce);
         robot_->desiredJointAcceleration_ = desiredJointAcceleration_;
 
 //        double error = desiredJointAcceleration_ - robot_->getFilteredCorrectedContactAccelerationsZ_()/IMU_DISTANCE;
@@ -356,10 +358,10 @@ void X2DemoState::during(void) {
         int motionIntend;
 //        if(robot_->getPosition()[1]>M_PI/4.0) motionIntend = -1;
 //        else motionIntend = 1;
-        if(desiredJointAcceleration_>0) motionIntend = -1;
+        if(robot_->getInteractionForce()[1]>0) motionIntend = 1;
         else motionIntend = 1;
 
-        desiredJointTorques_[1] = robot_->getRobotParameters().m[1]*robot_->correctedDesiredJointAcceleration_ - 0*J*robot_->getInteractionForce()[1]
+        desiredJointTorques_[1] = robot_->getRobotParameters().m[1]*robot_->correctedDesiredJointAcceleration_ - J*robot_->getInteractionForce()[1]
                                   + robot_->getFeedForwardTorque(motionIntend)[1];
 
         robot_->setTorque(desiredJointTorques_);
@@ -447,8 +449,10 @@ void X2DemoState::dynReconfCallback(CORC::dynamic_paramsConfig &config, uint32_t
     lambda_d_ = config.lambda_d;
     kp_acc_ = config.kp_acc;
     ki_acc_ = config.ki_acc;
-    A_acc_ = config.A_acc;
-    f_acc_ = config.f_acc;
+    A_pos_ = config.A_pos;
+    f_pos_ = config.f_pos;
+    k_interaction_ = config.k_interaction;
+    shiftPos_ = config.shift_pos;
     robot_->accCutoffFreq = config.acc_cutoff_freq;
     robot_->accBiasCutoffFreq = config.acc_bias_cutoff_freq;
 

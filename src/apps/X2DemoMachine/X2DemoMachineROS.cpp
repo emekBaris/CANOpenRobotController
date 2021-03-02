@@ -108,6 +108,9 @@ void X2DemoMachineROS::publishContactAccelerations() {
 
         imuMsg.angular_velocity.x = robot_->correctedDesiredJointAcceleration_*0.15;
         imuMsg.angular_velocity.y = robot_->mergedAcc_;
+        imuMsg.angular_velocity.z = robot_->targetJointPos;
+        imuMsg.orientation.x = robot_->desiredInteractionForce;
+
         imuMsg.linear_acceleration.x = robot_->desiredJointAcceleration_*0.15;
         imuMsg.linear_acceleration.y = robot_->getCorrectedContactAccelerationsZ_();
         imuMsg.linear_acceleration.z = robot_->getFilteredCorrectedContactAccelerationsZ_();

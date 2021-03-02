@@ -66,12 +66,17 @@ void X2DemoMachine::init(int argc, char *argv[]) {
     logHelper.add(x2DemoState->getDesiredJointTorques(), "DesiredJointTorques");
     logHelper.add(x2DemoState->desiredJointVelocities_, "DesiredJointVelocities");
     logHelper.add(x2DemoState->desiredJointAcceleration_, "DesiredJointAcceleration");
+    logHelper.add(robot_->correctedDesiredJointAcceleration_, "CorrectedDesiredJointAcceleration");
     logHelper.add(robot_->getInteractionForce(), "InteractionForces");
+    logHelper.add(robot_->desiredInteractionForce, "DesiredInteractionForce");
+    logHelper.add(robot_->targetJointPos, "targetJointPos");
     logHelper.add(robot_->getCorrectedContactAccelerationsZ_(), "ContactAcceleration");
     logHelper.add(robot_->mergedAcc_, "MergedContactAcceleration");
     logHelper.add(robot_->getFilteredCorrectedContactAccelerationsZ_(), "FilteredContactAcceleration");
     logHelper.add(robot_->getBackPackAngleOnMedianPlane(), "BackpackAngle");
     logHelper.add(x2DemoState->virtualMassRatio_, "virtualMassRatio");
+    logHelper.add(x2DemoState->k_interaction_, "stiffness");
+    logHelper.add(x2DemoState->f_pos_, "frequency");
     logHelper.add(x2DemoState->checkInput_, "input");
     logHelper.add(x2DemoState->checkOutput_, "output");
 

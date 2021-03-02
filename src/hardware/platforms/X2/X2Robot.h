@@ -417,7 +417,9 @@ private:
 
     double accCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
     double accBiasCutoffFreq; //todo: make it private after moving dynamic reconfigure to demoMachine
+    double targetJointPos; // todo: delete after machineROS has access to state
     double desiredJointAcceleration_; // todo: delete after machineROS has access to state
+    double desiredInteractionForce; // todo: delete after machineROS has access to state
     double correctedDesiredJointAcceleration_; // todo: delete after machineROS has access to state
 
 
