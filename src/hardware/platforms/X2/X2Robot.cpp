@@ -371,6 +371,23 @@ bool X2Robot::calibrateForceSensors() {
     }
 }
 
+Eigen::MatrixXd X2Robot::getContactQuaternions() {
+
+    int contactIndex = 0;
+    for(int imuIndex = 0; imuIndex<technaidIMUs->getNumberOfIMUs_(); imuIndex++){
+        if(x2Parameters.imuParameters.location[imuIndex] == 'c'){
+
+            if(technaidIMUs->getOutputMode_(imuIndex).name != "quat"){
+                spdlog::warn("Contact IMU mode is not quaternion for imu no: . Returns 0", imuIndex);
+                contactQuaternions_.col(contactIndex) = Eigen::MatrixXd::Zero(4,1);
+            }
+            contactQuaternions_.col(contactIndex) = technaidIMUs->getQuaternion().col(imuIndex);
+        }
+    }
+//    std::cout<<"CONTACT QUAT: "<<contactQuaternions_<<std::endl;
+    return contactQuaternions_;
+}
+
 Eigen::VectorXd X2Robot::getBackpackQuaternions() {
 
     for(int imuIndex = 0; imuIndex<numberOfIMUs_; imuIndex++){
@@ -493,6 +510,40 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
     return true;  // will come here if all joints successfully homed
 }
 
+bool X2Robot::homingWithImu() {
+
+    setBackpackIMUMode(IMUOutputMode::QUATERNION);
+    setContactIMUMode(IMUOutputMode::QUATERNION);
+//    sleep(10.5);
+    updateBackpackAngleOnMedianPlane();
+
+    Eigen::Quaterniond q;
+    Eigen::MatrixXd quatEigen = getContactQuaternions();
+    q.x() = quatEigen(0,0);
+    q.y() = quatEigen(1,0);
+    q.z() = quatEigen(2,0);
+    q.w() = quatEigen(3,0);
+
+//    std::cout<<"qx: "<<q.x()<<std::endl;
+//    std::cout<<"qy: "<<q.y()<<std::endl;
+//    std::cout<<"qz: "<<q.z()<<std::endl;
+//    std::cout<<"qw: "<<q.w()<<std::endl;
+
+    Eigen::Matrix3d R = q.toRotationMatrix();
+
+//    std::cout<<"R: "<< R<<std::endl;
+    double thetaContact = -std::atan2(-R(2,2), -R(2,0));
+
+    std::cout<<"thetaContact: "<<rad2deg(thetaContact)<<std::endl;
+    std::cout<<"backPackAngleOnMedianPlane_: "<<rad2deg(backPackAngleOnMedianPlane_)<<std::endl;
+    std::cout<<"joint 0: "<<rad2deg(this->getPosition()[0])<<std::endl;
+    std::cout<<"offset: "<<rad2deg(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_)<<std::endl;
+
+    ((X2Joint *)this->joints[1])->setPositionOffset(thetaContact + getPosition()[0]-backPackAngleOnMedianPlane_);
+
+}
+
+
 bool X2Robot::setBackpackIMUMode(IMUOutputMode imuOutputMode) {
 
     for(int i = 0; i<numberOfIMUs_; i++){
@@ -500,6 +551,17 @@ bool X2Robot::setBackpackIMUMode(IMUOutputMode imuOutputMode) {
             if(!technaidIMUs->setOutputMode(i, imuOutputMode)){
                 return false;
             } else return true;
+        }
+    }
+}
+
+bool X2Robot::setContactIMUMode(IMUOutputMode imuOutputMode) {
+
+    for(int i = 0; i<technaidIMUs->getNumberOfIMUs_(); i++){
+        if(x2Parameters.imuParameters.location[i] == 'c'){
+            if(!technaidIMUs->setOutputMode(i, imuOutputMode)){
+                return false;
+            }
         }
     }
 }

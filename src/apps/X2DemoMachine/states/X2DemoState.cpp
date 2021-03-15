@@ -35,7 +35,7 @@ void X2DemoState::during(void) {
     } else if(controller_mode_ == 2){ // zero velocity mode
         desiredJointVelocities_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         robot_->setVelocity(desiredJointVelocities_);
-//        std::cout<<robot_->getInteractionForce()<<std::endl<<"**********"<<std::endl;
+        std::cout<<robot_->getInteractionForce()<<std::endl<<"**********"<<std::endl;
 
     } else if(controller_mode_ == 3){ // feedforward model compensation
         int motionIntend;
@@ -121,7 +121,7 @@ void X2DemoState::during(void) {
         double f = 0;
         if(time<T) {
             double f = fi + (fn-fi)*time/T;
-            desiredJointTorques_[2] = a*sin(2.*M_PI*f*time);
+            desiredJointTorques_[0] = a*sin(2.*M_PI*f*time);
         }
         else {
             desiredJointTorques_[0] = 0;
@@ -129,6 +129,16 @@ void X2DemoState::during(void) {
             controller_mode_ = 0;
         }
         robot_->setTorque(desiredJointTorques_);
+    } else if(controller_mode_ == 8){ // Torque commands for parameter identification
+
+        desiredJointTorques_ = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
+
+        double time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - time0).count()/1000.0;
+
+        desiredJointTorques_[2] = A0_*sin(2*M_PI*f0_*time) + s0_;
+        desiredJointTorques_[3] = A1_*sin(2*M_PI*f1_*time) + s1_;
+        robot_->setTorque(desiredJointTorques_);
+
     }
 }
 
@@ -145,11 +155,23 @@ Eigen::VectorXd &X2DemoState::getDesiredJointTorques() {
 
 void X2DemoState::dynReconfCallback(CORC::dynamic_paramsConfig &config, uint32_t level) {
 
+
+    if(config.controller_mode == 8) {
+        if(controller_mode_ != config.controller_mode) robot_->initTorqueControl();
+        time0 = std::chrono::steady_clock::now();
+    }
+
     controller_mode_ = config.controller_mode;
     virtualMassRatio_ = config.virtual_mass_ratio;
     desiredInteractionForce_ = config.desired_interaction_force;
     mAdmittance_ = config.m_admittance;
     bAdmittance_ = config.b_admittance;
+    A0_ = config.A_0;
+    f0_ = config.f_0;
+    s0_ = config.s_0;
+    A1_ = config.A_1;
+    f1_ = config.f_1;
+    s1_ = config.s_1;
 
     if(controller_mode_ == 1) robot_->initTorqueControl();
     if(controller_mode_ == 2) robot_->initVelocityControl();

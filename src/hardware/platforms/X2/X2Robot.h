@@ -122,6 +122,13 @@ class X2Robot : public Robot {
     Eigen::VectorXd getBackpackQuaternions();
 
     /**
+    * \brief Get the acceleration at the contact points
+    *
+    * \return Eigen::MatrixXd rows represents x y z, w columns represents different contacts
+    */
+    Eigen::MatrixXd getContactQuaternions();
+
+    /**
     * \brief updates the angle of back pack with respect to - gravity vector on median plane. leaning front is positive
     */
     void updateBackpackAngleOnMedianPlane();
@@ -296,12 +303,24 @@ class X2Robot : public Robot {
     bool homing(std::vector<int> homingDirection = std::vector<int>(X2_NUM_JOINTS, 1), float thresholdTorque = 50.0,
                 float delayTime = 0.2, float homingSpeed = 5 * M_PI / 180.0, float maxTime = 30.0);
 
+    /**
+    * \brief homing by using IMU. premature version for 2 IMU. not ready for generalized use
+    *
+    * \return bool success of homing
+    */
+    bool homingWithImu();
 
     /**
     * \brief Set the backpack IMU Mode
     *
     */
     bool setBackpackIMUMode(IMUOutputMode imuOutputMode);
+
+    /**
+    * \brief Set the contact IMU Mode
+    *
+    */
+    bool setContactIMUMode(IMUOutputMode imuOutputMode);
 
 
     /**

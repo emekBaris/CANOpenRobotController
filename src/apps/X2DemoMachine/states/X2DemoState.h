@@ -62,6 +62,7 @@ private:
     double mAdmittance_ = 5;
     double bAdmittance_ = 2;
 
+    double A0_, f0_, s0_, A1_, f1_, s1_;
 
 };
 
