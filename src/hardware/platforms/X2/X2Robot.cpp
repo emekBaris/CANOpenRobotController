@@ -33,7 +33,7 @@ JointDrivePairs kneeJDP{
  * Defines the Joint Limits of the X2 Exoskeleton
  *
  */
-ExoJointLimits X2JointLimits = {deg2rad(120), deg2rad(-30), deg2rad(120), deg2rad(0)};
+ExoJointLimits X2JointLimits = {deg2rad(120), deg2rad(-40), deg2rad(120), deg2rad(0)};
 
 static volatile sig_atomic_t exitHoming = 0;
 
@@ -442,13 +442,14 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
                      float homingSpeed, float maxTime) {
     std::vector<bool> success(X2_NUM_JOINTS, false);
     std::chrono::steady_clock::time_point time0;
-    this->initVelocityControl();
     signal(SIGINT, signalHandler); // check if ctrl + c is pressed
 
     for (int i = 0; i < X2_NUM_JOINTS; i++) {
         if (homingDirection[i] == 0) continue;  // skip the joint if it is not asked to do homing
 
-        Eigen::VectorXd desiredVelocity(X2_NUM_JOINTS);
+        this->initVelocityControl();
+        Eigen::VectorXd desiredVelocity;
+        desiredVelocity = Eigen::VectorXd::Zero(X2_NUM_JOINTS);
         std::chrono::steady_clock::time_point firstTimeHighTorque;  // time at the first time joint exceed thresholdTorque
         bool highTorqueReached = false;
 
@@ -463,7 +464,6 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
             this->updateRobot();  // because this function has its own loops, updateRobot needs to be called
             this->setVelocity(desiredVelocity);
             usleep(10000);
-
 
             if (std::abs(this->getTorque()[i]) >= thresholdTorque) {  // if high torque is reached
                 highTorqueReached = true;
@@ -485,7 +485,7 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
         }
 
         if (success[i]) {
-            spdlog::debug("Homing Succeeded for Joint {} .", i);
+            spdlog::info("Homing Succeeded for Joint {} .", i);
             usleep(10000);
             if (i == X2_LEFT_HIP || i == X2_RIGHT_HIP) {  // if it is a hip joint
 
@@ -502,6 +502,9 @@ bool X2Robot::homing(std::vector<int> homingDirection, float thresholdTorque, fl
                 else
                     ((X2Joint *)this->joints[i])->setPositionOffset(X2JointLimits.kneeMin);
             }
+            // fell joint down from the limit
+            initTorqueControl();
+            sleep(2);
 
         } else {
             spdlog::error("Homing Failed for Joint {} .", i);
@@ -681,7 +684,7 @@ bool X2Robot::initializeRobotParams(std::string robotName) {
                 else if(x2Parameters.imuParameters.location[i] == 'b') numberOfBackpackIMUs++;
             }
 
-            if(numberOfContactIMUs == 0 || numberOfBackpackIMUs != 1){
+            if(/*numberOfContactIMUs == 0 ||*/ numberOfBackpackIMUs != 1){
                 spdlog::error("IMU locations are not proper");
                 x2Parameters.imuParameters.useIMU = false;
             } else{
